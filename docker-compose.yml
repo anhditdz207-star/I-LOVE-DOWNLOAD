@@ -1,0 +1,7 @@
+# Same file works locally and on a VPS: docker compose up -d --build
+services:
+  api:
+    build: ./backend
+    ports: ["8000:8000"]
+    env_file: ./backend/.env
+    restart: unless-stopped

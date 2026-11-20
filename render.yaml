@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: i-love-download-api
+    runtime: docker
+    plan: free
+    rootDir: backend
+    healthCheckPath: /healthz
+    envVars:
+      - key: ALLOWED_ORIGINS
+        sync: false   # set to https://<user>.github.io
+      - key: TRUST_PROXY
+        value: "true"
