@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import type { CSSProperties, KeyboardEvent, PointerEvent } from 'react'
+import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from 'react'
 import type { Platform, Theme } from '../types'
 import { SunMoon, YouTubeIcon, TikTokIcon } from './icons'
 
@@ -12,6 +12,7 @@ export default function PillSwitch({ platform, theme, onPlatform, onTheme }: P) 
   const [dx, setDx] = useState(0)
   const [drag, setDrag] = useState(false)
   const x0 = useRef(0), moved = useRef(false)
+  const timer = useRef<number>(), last = useRef(0)
 
   const down = (e: PointerEvent<HTMLButtonElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId)
@@ -31,10 +32,19 @@ export default function PillSwitch({ platform, theme, onPlatform, onTheme }: P) 
     }
     setDx(0)
   }
+  // One tap = back to home (after a short wait), two quick taps = toggle day/night. Works for mouse and touch.
+  const click = (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation()
+    if (moved.current) { moved.current = false; return }
+    const now = Date.now()
+    if (now - last.current < 300) { clearTimeout(timer.current); last.current = 0; onTheme(); return }
+    last.current = now
+    timer.current = window.setTimeout(() => onPlatform('home'), 300)
+  }
   const key = (e: KeyboardEvent) => {
     if (e.key === 'ArrowLeft') onPlatform('youtube')
     else if (e.key === 'ArrowRight') onPlatform('tiktok')
-    else if (e.key === 'Enter') onTheme()
+    else if (e.key === 't' || e.key === 'T') onTheme()
   }
 
   return (
@@ -44,9 +54,9 @@ export default function PillSwitch({ platform, theme, onPlatform, onTheme }: P) 
       <button className="half right" data-active={platform === 'tiktok'} data-dim={platform === 'youtube'}
         onClick={() => onPlatform('tiktok')}>tíctốc <TikTokIcon size={22} /></button>
       <button className="knob" style={{ '--dx': `${dx}px` } as CSSProperties}
-        aria-label={theme === 'day' ? 'Đang ban ngày. Nhấp đúp để chuyển sang ban đêm' : 'Đang ban đêm. Nhấp đúp để chuyển sang ban ngày'}
+        aria-label={`Bấm một lần để về trang chủ, bấm đúp để đổi sáng tối (đang ${theme === 'day' ? 'ban ngày' : 'ban đêm'})`}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
-        onClick={e => e.stopPropagation()} onDoubleClick={onTheme} onKeyDown={key}>
+        onClick={click} onKeyDown={key}>
         <SunMoon theme={theme} />
       </button>
     </div>

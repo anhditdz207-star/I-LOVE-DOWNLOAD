@@ -17,7 +17,7 @@ function disc(cx: number, cy: number, r: number) {
 }
 const rnd = (i: number) => { const s = Math.sin(i * 127.1) * 43758.5453; return s - Math.floor(s) }
 
-export default function Landscape() {
+export default function Landscape({ mode }: { mode: 'home' | 'bg' }) {
   const g = useMemo(() => ({
     m1: ridge(58, 14, 0.07, 1), m2: ridge(66, 12, 0.1, 4), m3: ridge(76, 5, 0.16, 9),
     stars: Array.from({ length: 34 }, (_, i) => [Math.floor(rnd(i) * W), Math.floor(rnd(i + 50) * 40), i] as const),
@@ -25,8 +25,8 @@ export default function Landscape() {
   }), [])
   const houses = [[22, 71, 9], [38, 72, 7], [96, 71, 10], [114, 72, 8], [130, 70, 9]]
   return (
-    <div className="frame landscape">
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" shapeRendering="crispEdges" role="img"
+    <div className="scene landscape" data-mode={mode} aria-hidden={mode === 'bg'}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" shapeRendering="crispEdges" role="img"
         aria-label="Phong cảnh pixel: làng nhỏ dưới núi, đổi giữa bình minh và đêm trăng">
         <defs>
           <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style={{ stopColor: 'var(--sky-top)' }} /><stop offset="1" style={{ stopColor: 'var(--sky-bot)' }} /></linearGradient>
