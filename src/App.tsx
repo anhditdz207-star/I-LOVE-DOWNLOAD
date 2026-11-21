@@ -10,14 +10,16 @@ export default function App() {
   const [theme, setTheme] = useState<Theme>('day')
   useEffect(() => { document.documentElement.dataset.theme = theme }, [theme])
   return (
-    <div className="app">
+    <>
       <Landscape mode={platform === 'home' ? 'home' : 'bg'} />
+      <div className="app">
       <Header platform={platform} theme={theme} onPlatform={setPlatform}
         onTheme={() => setTheme(t => (t === 'day' ? 'night' : 'day'))} />
       <main key={platform} className="stage">
         {platform !== 'home' && <PlatformPage platform={platform} />}
       </main>
       <Footer />
-    </div>
+      </div>
+    </>
   )
 }

@@ -5,7 +5,7 @@ import { PlatformBadge } from './icons'
 type P = { platform: Platform; theme: Theme; onPlatform: (p: Platform) => void; onTheme: () => void }
 export default function Header({ platform, theme, onPlatform, onTheme }: P) {
   return (
-    <header className="hdr">
+    <header className="hdr" data-side={platform !== 'home'}>
       <button className="brand" onClick={() => onPlatform('home')} aria-label="Về trang chủ">
         <img src={`${import.meta.env.BASE_URL}logo.png`} alt="" width={52} height={52} />
         <span>I LOVE DOWNLOAD</span>

@@ -13,7 +13,7 @@ export default function ResultPanel({ info, url }: { info: MediaInfo; url: strin
   const chosen = opts.find(o => o.id === sel)
 
   return (
-    <section className="result frame" aria-live="polite">
+    <section className="result" aria-live="polite">
       <div className="meta">
         {info.thumbnail && <img src={info.thumbnail} alt="" />}
         <div><h2>{info.title}</h2><p>{[info.uploader, dur(info.duration)].filter(Boolean).join(' · ')}</p></div>

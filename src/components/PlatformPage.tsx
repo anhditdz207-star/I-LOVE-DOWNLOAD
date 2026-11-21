@@ -29,10 +29,12 @@ export default function PlatformPage({ platform }: { platform: Exclude<Platform,
           <svg viewBox="0 -1 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round"><path d="M9 3h6v8h4l-7 8-7-8h4z" /></svg>
         </button>
       </form>
-      {st.s === 'idle' && <p className="hint">Dán liên kết video bạn có quyền tải, rồi bấm mũi tên.</p>}
-      {st.s === 'loading' && <div className="loader" role="status"><i /><i /><i /><span>Đang lấy thông tin…</span></div>}
-      {st.s === 'error' && <p className="err" role="alert">{st.msg}</p>}
-      {st.s === 'done' && <ResultPanel info={st.info} url={st.url} />}
+      <div className="preview frame">
+        {st.s === 'idle' && <p className="hint">Dán liên kết video bạn có quyền tải, rồi bấm mũi tên. Thông tin video sẽ hiện ở đây.</p>}
+        {st.s === 'loading' && <div className="loader" role="status"><i /><i /><i /><span>Đang lấy thông tin…</span></div>}
+        {st.s === 'error' && <p className="err" role="alert">{st.msg}</p>}
+        {st.s === 'done' && <ResultPanel info={st.info} url={st.url} />}
+      </div>
     </section>
   )
 }
