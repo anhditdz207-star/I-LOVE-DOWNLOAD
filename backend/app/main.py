@@ -96,7 +96,7 @@ def info(req: InfoReq):
         data = extract_info(url)
     except DownloadError as e:
         raise vi_error(e)
-    return build_info(data)
+    return build_info(data, config.MAX_HEIGHT)
 
 @app.get("/api/download", dependencies=[Depends(rate_limit)])
 def download(url: str, kind: Literal["video", "audio"], id: str, bg: BackgroundTasks):
@@ -107,7 +107,10 @@ def download(url: str, kind: Literal["video", "audio"], id: str, bg: BackgroundT
     if kind == "video":
         if not re.fullmatch(r"\d{3,4}|best", id):
             raise HTTPException(400, "Chất lượng video không hợp lệ.")
-        sel = "bv*+ba/b" if id == "best" else f"bv*[height<={id}]+ba/b[height<={id}]"
+        if id != "best" and config.MAX_HEIGHT and int(id) > config.MAX_HEIGHT:
+            raise HTTPException(400, "Chất lượng này vượt giới hạn của máy chủ.")
+        cap = f"[height<={config.MAX_HEIGHT}]" if config.MAX_HEIGHT else ""
+        sel = f"bv*{cap}+ba/b{cap}" if id == "best" else f"bv*[height<={id}]+ba/b[height<={id}]"
         opts = {"format": sel, "merge_output_format": "mp4", "format_sort": ["res", "vcodec:h264", "acodec:aac"]}
     else:
         if id not in AUDIO_IDS:

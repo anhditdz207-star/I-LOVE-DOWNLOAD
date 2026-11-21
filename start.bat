@@ -18,6 +18,13 @@ if /i "%1"=="rebuild" (
 if not exist dist\index.html (echo Thieu thu muc dist. Chay: start.bat rebuild & pause & exit /b 1)
 echo Mo http://localhost:8000 (dong cua so nay de tat may chu)
 start "" /b cmd /c "timeout /t 4 /nobreak >nul & start http://localhost:8000"
+set HOST=127.0.0.1
+if /i "%1"=="lan" set HOST=0.0.0.0
+if /i "%2"=="lan" set HOST=0.0.0.0
+if "%HOST%"=="0.0.0.0" (
+  echo Che do mang LAN: dien thoai cung Wi-Fi mo http://IPv4-ben-duoi:8000
+  ipconfig | findstr /c:"IPv4"
+)
 cd backend
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+python -m uvicorn app.main:app --host %HOST% --port 8000
 pause

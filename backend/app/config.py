@@ -10,4 +10,5 @@ RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "20"))
 MAX_DURATION_SECONDS = int(os.getenv("MAX_DURATION_SECONDS", "3600"))
 MAX_FILESIZE = int(os.getenv("MAX_FILESIZE_MB", "500")) * 1024 * 1024
 MAX_CONCURRENT_DOWNLOADS = int(os.getenv("MAX_CONCURRENT_DOWNLOADS", "1"))
+MAX_HEIGHT = int(os.getenv("MAX_HEIGHT", "0"))  # 0 = no cap; free hosts: 720
 TRUST_PROXY = os.getenv("TRUST_PROXY", "false").lower() == "true"

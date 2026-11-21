@@ -65,3 +65,10 @@ def test_best_option_when_no_resolution(monkeypatch):
     d = c.post("/api/info", json={"url": "https://www.instagram.com/reel/abc/", "platform": "instagram"}).json()
     assert [v["id"] for v in d["video"]] == ["best"]
     assert c.get("/api/download", params={"url": "https://www.instagram.com/reel/abc/", "kind": "video", "id": "best;x"}).status_code == 400
+
+def test_max_height_cap(monkeypatch):
+    monkeypatch.setattr(config, "MAX_HEIGHT", 360)
+    monkeypatch.setattr(main, "extract_info", lambda u: FAKE)
+    d = c.post("/api/info", json={"url": "https://youtu.be/abc", "platform": "youtube"}).json()
+    assert [v["id"] for v in d["video"]] == ["360"]
+    assert c.get("/api/download", params={"url": "https://youtu.be/abc", "kind": "video", "id": "720"}).status_code == 400

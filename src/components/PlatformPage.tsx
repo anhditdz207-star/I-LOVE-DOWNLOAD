@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Platform } from '../types'
 import { checkUrl, fetchInfo, type MediaInfo } from '../api'
@@ -10,6 +10,12 @@ export default function PlatformPage({ platform }: { platform: Exclude<Platform,
   const name = { youtube: 'YouTube', tiktok: 'TikTok', facebook: 'Facebook', instagram: 'Instagram' }[platform]
   const [url, setUrl] = useState('')
   const [st, setSt] = useState<State>({ s: 'idle' })
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    if (st.s !== 'loading') { setSlow(false); return }
+    const t = setTimeout(() => setSlow(true), 6000)
+    return () => clearTimeout(t)
+  }, [st.s])
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -31,7 +37,7 @@ export default function PlatformPage({ platform }: { platform: Exclude<Platform,
       </form>
       <div className="preview frame">
         {st.s === 'idle' && <p className="hint">Dán liên kết video bạn có quyền tải, rồi bấm mũi tên. Thông tin video sẽ hiện ở đây.</p>}
-        {st.s === 'loading' && <div className="loader" role="status"><i /><i /><i /><span>Đang lấy thông tin…</span></div>}
+        {st.s === 'loading' && <div className="loader" role="status"><i /><i /><i /><span>{slow ? 'Máy chủ miễn phí đang thức dậy, có thể mất tới 1 phút…' : 'Đang lấy thông tin…'}</span></div>}
         {st.s === 'error' && <p className="err" role="alert">{st.msg}</p>}
         {st.s === 'done' && <ResultPanel info={st.info} url={st.url} />}
       </div>

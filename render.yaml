@@ -3,10 +3,19 @@ services:
     name: i-love-download-api
     runtime: docker
     plan: free
-    rootDir: backend
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     healthCheckPath: /healthz
     envVars:
       - key: ALLOWED_ORIGINS
-        sync: false   # set to https://<user>.github.io
+        sync: false   # Render hỏi khi tạo: nhập https://<tên-github>.github.io
       - key: TRUST_PROXY
         value: "true"
+      - key: MAX_HEIGHT
+        value: "720"
+      - key: MAX_DURATION_SECONDS
+        value: "1200"
+      - key: MAX_FILESIZE_MB
+        value: "150"
+      - key: RATE_LIMIT_PER_MIN
+        value: "10"

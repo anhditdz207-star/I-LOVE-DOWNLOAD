@@ -8,13 +8,13 @@ def _size(f: dict) -> int:
 def _label(h: int) -> str:
     return {720: "720p HD", 1080: "1080p Full HD", 1440: "1440p 2K", 2160: "2160p 4K"}.get(h, f"{h}p")
 
-def build_info(info: dict) -> dict:
+def build_info(info: dict, max_height: int = 0) -> dict:
     fmts = info.get("formats") or []
     vids = [f for f in fmts if f.get("vcodec") not in (None, "none") and f.get("height")]
     aonly = [f for f in fmts if f.get("acodec") not in (None, "none") and f.get("vcodec") in (None, "none")]
     best_a = max((_size(f) for f in aonly), default=0)
     video = []
-    for h in sorted({f["height"] for f in vids}):
+    for h in sorted({f["height"] for f in vids if not max_height or f["height"] <= max_height}):
         vs = max((_size(f) for f in vids if f["height"] == h), default=0)
         video.append({"id": str(h), "label": _label(h), "ext": "mp4", "filesize": (vs + best_a) if vs else None})
     if not video and any(f.get("vcodec") not in (None, "none") for f in fmts):  # source gives no resolution info
