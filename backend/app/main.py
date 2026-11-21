@@ -41,11 +41,17 @@ def _sweeper() -> None:
         time.sleep(300)
 threading.Thread(target=_sweeper, daemon=True).start()
 
-BASE = {"quiet": True, "no_warnings": True, "noplaylist": True, "socket_timeout": 15, "retries": 2}
+BASE = {"quiet": True, "no_warnings": True, "noplaylist": True, "socket_timeout": 15, "retries": 2, "playlist_items": "1"}
 
 def extract_info(url: str) -> dict:
     with YoutubeDL({**BASE, "skip_download": True}) as y:
-        return y.extract_info(url, download=False)
+        info = y.extract_info(url, download=False)
+    if info and info.get("_type") == "playlist":  # e.g. multi-media Instagram/Facebook posts: use the first item
+        entries = [e for e in info.get("entries") or [] if e]
+        if not entries:
+            raise DownloadError("Unsupported URL")
+        info = entries[0]
+    return info
 
 def run_download(url: str, opts: dict, job_dir: str) -> tuple[str, str]:
     def too_long(info, *, incomplete=False):
@@ -64,6 +70,8 @@ def vi_error(e: Exception) -> HTTPException:
     m = str(e).lower()
     if "sign in to confirm" in m or "not a bot" in m:
         return HTTPException(502, "Nền tảng đang chặn máy chủ này (yêu cầu xác minh không phải robot). Hãy chạy backend trên mạng nhà hoặc VPS khác.")
+    if "login" in m or "log in" in m or "cookies" in m or "rate-limit" in m:
+        return HTTPException(422, "Nội dung này cần đăng nhập hoặc không công khai nên không tải được. Chỉ hỗ trợ nội dung công khai.")
     if "private" in m:
         return HTTPException(422, "Video ở chế độ riêng tư, không thể tải.")
     if "unavailable" in m or "removed" in m or "not available" in m:
@@ -72,7 +80,7 @@ def vi_error(e: Exception) -> HTTPException:
 
 class InfoReq(BaseModel):
     url: str
-    platform: Literal["youtube", "tiktok"]
+    platform: Literal["youtube", "tiktok", "facebook", "instagram"]
 
 @app.get("/healthz")
 def healthz():
@@ -97,9 +105,10 @@ def download(url: str, kind: Literal["video", "audio"], id: str, bg: BackgroundT
     except UnsafeUrl:
         raise HTTPException(400, "Liên kết không hợp lệ hoặc không thuộc nền tảng được hỗ trợ.")
     if kind == "video":
-        if not re.fullmatch(r"\d{3,4}", id):
+        if not re.fullmatch(r"\d{3,4}|best", id):
             raise HTTPException(400, "Chất lượng video không hợp lệ.")
-        opts = {"format": f"bv*[height<={id}]+ba/b[height<={id}]", "merge_output_format": "mp4", "format_sort": ["res", "vcodec:h264", "acodec:aac"]}
+        sel = "bv*+ba/b" if id == "best" else f"bv*[height<={id}]+ba/b[height<={id}]"
+        opts = {"format": sel, "merge_output_format": "mp4", "format_sort": ["res", "vcodec:h264", "acodec:aac"]}
     else:
         if id not in AUDIO_IDS:
             raise HTTPException(400, "Định dạng âm thanh không hợp lệ.")

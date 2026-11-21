@@ -37,6 +37,12 @@
 - [x] Dòng bản quyền "by Nguyễn Trung Nguyên" ở cả 3 trang
 - [ ] start.bat chưa được chạy thử trên Windows thật (viết ở môi trường Linux)
 
+## Hai viên thuốc: nhóm A (yêutừbé/tíctốc, ngang) và nhóm B (facebook/insta, dọc bên trái)
+- [x] Chọn một nhóm thì viên thuốc nhóm kia ẩn đi; nhóm A xoay dọc sang trái khi được chọn
+- [x] Backend nhận Facebook, Instagram (chỉ nội dung công khai, không đăng nhập/cookie); 19 test pass
+- [ ] Tải thật từ Facebook/Instagram chưa thử; Instagram thường yêu cầu đăng nhập nên có thể báo lỗi
+- [ ] Icon Facebook/Instagram là bản đơn giản hóa, chưa xem trên trình duyệt thật
+
 ## Milestone 5 — Integration
 - [ ] Chạy thật frontend + backend trên Windows 11 (cần người dùng thử, gửi lại lỗi nếu có)
 - [ ] Sửa lỗi tương tác, thêm tiến trình tải nếu cần

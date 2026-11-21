@@ -51,3 +51,17 @@ def test_private_network_preflight():
     r = c.options("/api/info", headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "POST",
         "Access-Control-Request-Headers": "content-type", "Access-Control-Request-Private-Network": "true"})
     assert r.status_code == 200 and r.headers.get("access-control-allow-private-network") == "true"
+
+@pytest.mark.parametrize("p,u", [("facebook", "https://www.facebook.com/watch?v=1"), ("facebook", "https://fb.watch/abc"), ("instagram", "https://www.instagram.com/reel/abc/")])
+def test_new_platforms_accepted(p, u):
+    assert validate_url(p, u) == u
+
+def test_cross_platform_rejected():
+    with pytest.raises(UnsafeUrl):
+        validate_url("instagram", "https://www.facebook.com/watch?v=1")
+
+def test_best_option_when_no_resolution(monkeypatch):
+    monkeypatch.setattr(main, "extract_info", lambda u: {"title": "R", "formats": [{"vcodec": "h264", "acodec": "aac"}]})
+    d = c.post("/api/info", json={"url": "https://www.instagram.com/reel/abc/", "platform": "instagram"}).json()
+    assert [v["id"] for v in d["video"]] == ["best"]
+    assert c.get("/api/download", params={"url": "https://www.instagram.com/reel/abc/", "kind": "video", "id": "best;x"}).status_code == 400

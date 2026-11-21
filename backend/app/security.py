@@ -2,6 +2,8 @@ from urllib.parse import urlparse
 
 HOSTS = {
     "youtube": {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"},
+    "facebook": {"facebook.com", "www.facebook.com", "m.facebook.com", "web.facebook.com", "fb.watch"},
+    "instagram": {"instagram.com", "www.instagram.com", "m.instagram.com"},
     "tiktok": {"tiktok.com", "www.tiktok.com", "m.tiktok.com", "vm.tiktok.com", "vt.tiktok.com"},
 }
 

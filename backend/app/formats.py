@@ -17,6 +17,8 @@ def build_info(info: dict) -> dict:
     for h in sorted({f["height"] for f in vids}):
         vs = max((_size(f) for f in vids if f["height"] == h), default=0)
         video.append({"id": str(h), "label": _label(h), "ext": "mp4", "filesize": (vs + best_a) if vs else None})
+    if not video and any(f.get("vcodec") not in (None, "none") for f in fmts):  # source gives no resolution info
+        video.append({"id": "best", "label": "Chất lượng gốc", "ext": "mp4", "filesize": None})
     src_abr = max((f.get("abr") or 0 for f in fmts if f.get("acodec") not in (None, "none")), default=0) or 128
     audio = []
     for fmt, br in AUDIO_PRESETS:

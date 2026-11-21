@@ -7,7 +7,7 @@ import ResultPanel from './ResultPanel'
 type State = { s: 'idle' } | { s: 'loading' } | { s: 'error'; msg: string } | { s: 'done'; info: MediaInfo; url: string }
 
 export default function PlatformPage({ platform }: { platform: Exclude<Platform, 'home'> }) {
-  const name = platform === 'youtube' ? 'YouTube' : 'TikTok'
+  const name = { youtube: 'YouTube', tiktok: 'TikTok', facebook: 'Facebook', instagram: 'Instagram' }[platform]
   const [url, setUrl] = useState('')
   const [st, setSt] = useState<State>({ s: 'idle' })
 

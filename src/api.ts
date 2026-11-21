@@ -5,8 +5,10 @@ export type AudioOpt = { id: string; format: string; bitrate: number | null; fil
 export type MediaInfo = { title: string; thumbnail: string | null; duration: number | null; uploader: string | null; video: VideoOpt[]; audio: AudioOpt[] }
 
 export const MOCK = import.meta.env.VITE_USE_MOCK === 'true'
-const NAME = { youtube: 'YouTube', tiktok: 'TikTok' } as const
-const HOSTS: Record<'youtube' | 'tiktok', string[]> = {
+const NAME = { youtube: 'YouTube', tiktok: 'TikTok', facebook: 'Facebook', instagram: 'Instagram' } as const
+const HOSTS: Record<Exclude<Platform, 'home'>, string[]> = {
+  facebook: ['facebook.com', 'www.facebook.com', 'm.facebook.com', 'web.facebook.com', 'fb.watch'],
+  instagram: ['instagram.com', 'www.instagram.com', 'm.instagram.com'],
   youtube: ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'],
   tiktok: ['tiktok.com', 'www.tiktok.com', 'm.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com'],
 }
