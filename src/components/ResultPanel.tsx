@@ -5,12 +5,16 @@ const size = (n: number | null) => (n ? `${(n / 1048576).toFixed(1)} MB` : 'chư
 const dur = (s: number | null) => (s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : '')
 
 export default function ResultPanel({ info, url }: { info: MediaInfo; url: string }) {
-  const [kind, setKind] = useState<'video' | 'audio'>('video')
+  const imgs = info.images ?? []
+  const imageOnly = info.video.length === 0 && imgs.length > 0
+  const [kind, setKind] = useState<'video' | 'audio' | 'image'>(imageOnly ? 'image' : 'video')
   const [sel, setSel] = useState<string | null>(null)
-  const opts = kind === 'video'
+  const opts = kind === 'image'
+    ? imgs.map(i => ({ id: i.id, label: i.label, filesize: i.filesize, ok: true }))
+    : kind === 'video'
     ? info.video.map(v => ({ id: v.id, label: `${v.label} · ${v.ext}`, filesize: v.filesize, ok: true }))
     : info.audio.map(a => ({ id: a.id, label: `${a.format}${a.bitrate ? ` · ${a.bitrate} kbps` : ['WAV', 'FLAC'].includes(a.format) ? ' · lossless' : ''}`, filesize: a.filesize, ok: a.available }))
-  const chosen = opts.find(o => o.id === sel)
+  const chosen = opts.find(o => o.id === sel) ?? (kind === 'image' && opts.length === 1 ? opts[0] : undefined)
 
   return (
     <section className="result" aria-live="polite">
@@ -20,10 +24,10 @@ export default function ResultPanel({ info, url }: { info: MediaInfo; url: strin
       </div>
       {MOCK && <p className="mockbar">Đang ở chế độ dữ liệu giả. Các lựa chọn bên dưới không phải định dạng thật.</p>}
       <div className="tabs" role="tablist">
-        {(['video', 'audio'] as const).map(k => (
-          <button key={k} role="tab" aria-selected={kind === k} onClick={() => { setKind(k); setSel(null) }}>{k === 'video' ? 'VIDEO' : 'AUDIO'}</button>))}
+        {(imageOnly ? (['image'] as const) : (['video', 'audio'] as const)).map(k => (
+          <button key={k} role="tab" aria-selected={kind === k} onClick={() => { setKind(k); setSel(null) }}>{k === 'video' ? 'VIDEO' : k === 'audio' ? 'AUDIO' : 'ẢNH'}</button>))}
       </div>
-      {opts.length === 0 ? <p className="empty">Không có định dạng {kind === 'video' ? 'video' : 'âm thanh'} nào cho liên kết này.</p> : (
+      {opts.length === 0 ? <p className="empty">Không có định dạng nào cho liên kết này.</p> : (
         <ul className="opts">
           {opts.map(o => (
             <li key={o.id}><button aria-pressed={sel === o.id} disabled={!o.ok} onClick={() => setSel(o.id)}>

@@ -2,7 +2,8 @@ import { API_BASE_URL, type Platform } from './types'
 
 export type VideoOpt = { id: string; label: string; ext: string; filesize: number | null }
 export type AudioOpt = { id: string; format: string; bitrate: number | null; filesize: number | null; available: boolean }
-export type MediaInfo = { title: string; thumbnail: string | null; duration: number | null; uploader: string | null; video: VideoOpt[]; audio: AudioOpt[] }
+export type ImageOpt = { id: string; label: string; ext: string; filesize: number | null }
+export type MediaInfo = { title: string; thumbnail: string | null; duration: number | null; uploader: string | null; video: VideoOpt[]; audio: AudioOpt[]; images?: ImageOpt[] }
 
 export const MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 const NAME = { youtube: 'YouTube', tiktok: 'TikTok', facebook: 'Facebook', instagram: 'Instagram' } as const
@@ -41,5 +42,5 @@ export async function fetchInfo(p: Exclude<Platform, 'home'>, url: string): Prom
   return res.json()
 }
 
-export const downloadUrl = (url: string, kind: 'video' | 'audio', id: string) =>
+export const downloadUrl = (url: string, kind: 'video' | 'audio' | 'image', id: string) =>
   `${API_BASE_URL}/api/download?` + new URLSearchParams({ url, kind, id })

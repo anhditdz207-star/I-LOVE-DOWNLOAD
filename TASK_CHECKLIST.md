@@ -43,6 +43,10 @@
 - [ ] Tải thật từ Facebook/Instagram chưa thử; Instagram thường yêu cầu đăng nhập nên có thể báo lỗi
 - [ ] Icon Facebook/Instagram là bản đơn giản hóa, chưa xem trên trình duyệt thật
 
+## Tải ảnh (TikTok/Facebook/Instagram) qua gallery-dl
+- [x] Khi bài đăng không có video, backend thử tìm ảnh bằng gallery-dl, tải về một tệp hoặc .zip; giao diện có tab ẢNH (24 test pass, dữ liệu giả)
+- [ ] Chưa thử tải ảnh thật; Instagram và Facebook thường cần đăng nhập nên có thể báo lỗi
+
 ## Milestone 5 — Integration
 - [ ] Chạy thật frontend + backend trên Windows 11 (cần người dùng thử, gửi lại lỗi nếu có)
 - [ ] Sửa lỗi tương tác, thêm tiến trình tải nếu cần

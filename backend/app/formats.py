@@ -26,4 +26,4 @@ def build_info(info: dict, max_height: int = 0) -> dict:
         audio.append({"id": f"{fmt}-{br}" if br else fmt, "format": fmt.upper(), "bitrate": br, "filesize": None, "available": ok})
     return {"title": info.get("title") or "Không có tiêu đề", "thumbnail": info.get("thumbnail"),
             "duration": int(info["duration"]) if info.get("duration") else None, "uploader": info.get("uploader"),
-            "video": video, "audio": audio}
+            "video": video, "audio": audio, "images": []}

@@ -11,6 +11,7 @@ from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 
 from . import config
+from . import images
 from .formats import AUDIO_IDS, build_info
 from .security import UnsafeUrl, platform_of, validate_url
 
@@ -69,7 +70,7 @@ def run_download(url: str, opts: dict, job_dir: str) -> tuple[str, str]:
 def vi_error(e: Exception) -> HTTPException:
     m = str(e).lower()
     if "sign in to confirm" in m or "not a bot" in m:
-        return HTTPException(502, "Nền tảng đang chặn máy chủ này (yêu cầu xác minh không phải robot). Hãy chạy backend trên mạng nhà hoặc VPS khác.")
+        return HTTPException(502, "Nền tảng đang chặn máy chủ miễn phí này (yêu cầu xác minh không phải robot). Các nền tảng khác vẫn dùng được. Với YouTube, hãy chạy bản trên máy bạn (start.bat) hoặc thử lại sau.")
     if "login" in m or "log in" in m or "cookies" in m or "rate-limit" in m:
         return HTTPException(422, "Nội dung này cần đăng nhập hoặc không công khai nên không tải được. Chỉ hỗ trợ nội dung công khai.")
     if "private" in m:
@@ -77,6 +78,13 @@ def vi_error(e: Exception) -> HTTPException:
     if "unavailable" in m or "removed" in m or "not available" in m:
         return HTTPException(422, "Video không còn khả dụng hoặc bị giới hạn ở khu vực của máy chủ.")
     return HTTPException(422, "Không lấy được video. Hãy kiểm tra liên kết hoặc thử lại sau.")
+
+def image_error(ie: "images.ImageError", original: Exception) -> HTTPException:
+    if ie.kind == "timeout":
+        return HTTPException(504, "Hết thời gian chờ khi tìm ảnh. Hãy thử lại.")
+    if ie.kind == "login":
+        return HTTPException(422, "Nội dung này cần đăng nhập hoặc không công khai nên không tải được. Chỉ hỗ trợ nội dung công khai.")
+    return vi_error(original)
 
 class InfoReq(BaseModel):
     url: str
@@ -95,16 +103,30 @@ def info(req: InfoReq):
     try:
         data = extract_info(url)
     except DownloadError as e:
+        if req.platform != "youtube" and "not a bot" not in str(e).lower() and "sign in to confirm" not in str(e).lower():
+            try:  # no video in this post? maybe it is a photo post
+                exts = images.list_images(url)
+            except images.ImageError as ie:
+                raise image_error(ie, e)
+            if exts:
+                n = len(exts)
+                out = build_info({"title": "Ảnh từ bài đăng"})
+                out["images"] = [{"id": "all", "label": f"Tất cả {n} ảnh (.zip)" if n > 1 else "Ảnh gốc (1 ảnh)", "ext": "zip" if n > 1 else exts[0], "filesize": None}]
+                return out
         raise vi_error(e)
     return build_info(data, config.MAX_HEIGHT)
 
 @app.get("/api/download", dependencies=[Depends(rate_limit)])
-def download(url: str, kind: Literal["video", "audio"], id: str, bg: BackgroundTasks):
+def download(url: str, kind: Literal["video", "audio", "image"], id: str, bg: BackgroundTasks):
     try:
         url = validate_url(platform_of(url), url)
     except UnsafeUrl:
         raise HTTPException(400, "Liên kết không hợp lệ hoặc không thuộc nền tảng được hỗ trợ.")
-    if kind == "video":
+    if kind == "image":
+        if id != "all":
+            raise HTTPException(400, "Lựa chọn ảnh không hợp lệ.")
+        opts = {}
+    elif kind == "video":
         if not re.fullmatch(r"\d{3,4}|best", id):
             raise HTTPException(400, "Chất lượng video không hợp lệ.")
         if id != "best" and config.MAX_HEIGHT and int(id) > config.MAX_HEIGHT:
@@ -117,14 +139,17 @@ def download(url: str, kind: Literal["video", "audio"], id: str, bg: BackgroundT
             raise HTTPException(400, "Định dạng âm thanh không hợp lệ.")
         codec, br = AUDIO_IDS[id]
         opts = {"format": "bestaudio/best", "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": codec, "preferredquality": str(br or 0)}]}
-    if not shutil.which("ffmpeg"):
+    if kind != "image" and not shutil.which("ffmpeg"):
         raise HTTPException(503, "Máy chủ chưa cài FFmpeg.")
     if not _slots.acquire(blocking=False):
         raise HTTPException(429, "Máy chủ đang bận xử lý một tệp khác. Hãy thử lại sau ít phút.")
     job = os.path.join(config.TMP_DIR, os.urandom(8).hex())
     os.makedirs(job)
     try:
-        path, title = run_download(url, opts, job)
+        path, title = images.download_all(url, job, config.MAX_FILESIZE // 1048576) if kind == "image" else run_download(url, opts, job)
+    except images.ImageError as ie:
+        shutil.rmtree(job, ignore_errors=True)
+        raise image_error(ie, DownloadError("unavailable"))
     except DownloadError as e:
         shutil.rmtree(job, ignore_errors=True)
         raise vi_error(e)

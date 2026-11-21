@@ -72,3 +72,46 @@ def test_max_height_cap(monkeypatch):
     d = c.post("/api/info", json={"url": "https://youtu.be/abc", "platform": "youtube"}).json()
     assert [v["id"] for v in d["video"]] == ["360"]
     assert c.get("/api/download", params={"url": "https://youtu.be/abc", "kind": "video", "id": "720"}).status_code == 400
+
+def _no_video(u):
+    from yt_dlp.utils import DownloadError
+    raise DownloadError("There is no video in this post")
+
+def test_photo_post_fallback(monkeypatch):
+    monkeypatch.setattr(main, "extract_info", _no_video)
+    monkeypatch.setattr(main.images, "list_images", lambda u: ["jpg", "jpg", "png"])
+    d = c.post("/api/info", json={"url": "https://www.instagram.com/p/abc/", "platform": "instagram"}).json()
+    assert d["video"] == [] and d["images"][0]["id"] == "all" and "3 ảnh" in d["images"][0]["label"]
+
+def test_photo_login_message(monkeypatch):
+    monkeypatch.setattr(main, "extract_info", _no_video)
+    def boom(u): raise main.images.ImageError("login")
+    monkeypatch.setattr(main.images, "list_images", boom)
+    r = c.post("/api/info", json={"url": "https://www.instagram.com/p/abc/", "platform": "instagram"})
+    assert r.status_code == 422 and "đăng nhập" in r.json()["detail"]
+
+def test_youtube_never_uses_image_fallback(monkeypatch):
+    monkeypatch.setattr(main, "extract_info", _no_video)
+    monkeypatch.setattr(main.images, "list_images", lambda u: (_ for _ in ()).throw(AssertionError("must not be called")))
+    assert c.post("/api/info", json={"url": "https://youtu.be/abc", "platform": "youtube"}).status_code == 422
+
+def test_image_download(monkeypatch):
+    def fake(url, job, mb):
+        p = os.path.join(job, "a.jpg"); open(p, "wb").write(b"img"); return p, "anh"
+    monkeypatch.setattr(main.images, "download_all", fake)
+    r = c.get("/api/download", params={"url": "https://www.instagram.com/p/abc/", "kind": "image", "id": "all"})
+    assert r.status_code == 200 and r.content == b"img" and os.listdir(config.TMP_DIR) == []
+    assert c.get("/api/download", params={"url": "https://www.instagram.com/p/abc/", "kind": "image", "id": "x"}).status_code == 400
+
+def test_images_parse_gallery_dl_errors(monkeypatch):
+    import subprocess, json
+    from app import images
+    def fake(args, timeout):
+        out = json.dumps([[-1, {"error": "AuthRequired", "message": "login required"}]])
+        return subprocess.CompletedProcess(args, 0, out, "")
+    monkeypatch.setattr(images, "_run", fake)
+    with pytest.raises(images.ImageError) as e:
+        images.list_images("https://www.instagram.com/p/abc/")
+    assert e.value.kind == "login"
+    monkeypatch.setattr(images, "_run", lambda a, t: subprocess.CompletedProcess(a, 0, json.dumps([[2, {}], [3, "u", {"extension": "jpg"}], [3, "v", {"extension": "mp4"}]]), ""))
+    assert images.list_images("https://www.instagram.com/p/abc/") == ["jpg"]

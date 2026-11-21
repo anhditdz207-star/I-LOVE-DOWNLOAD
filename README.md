@@ -60,6 +60,9 @@ Gói free tự ngủ sau 15 phút, lần đầu mở lại mất khoảng 1 phú
 Giới hạn Render free: RAM nhỏ, tự ngủ khi không dùng, và YouTube hay chặn IP máy chủ cloud.
 Luôn giữ yt-dlp mới (`pip install -U yt-dlp` hoặc build lại image) vì trang nguồn thay đổi thường xuyên.
 
+## Tải ảnh
+Bài đăng chỉ có ảnh (TikTok ảnh, Facebook, Instagram) được xử lý bằng gallery-dl (GPL-2.0, chạy như tiến trình riêng, không đóng gói vào mã nguồn). Chỉ nội dung công khai; Instagram/Facebook thường yêu cầu đăng nhập nên có thể báo lỗi.
+
 ## Bảo mật backend
 Chỉ nhận `https` và đúng tên miền YouTube/TikTok, giới hạn tốc độ theo IP, CORS theo `ALLOWED_ORIGINS`, id định dạng kiểm tra bằng danh sách cố định, file tạm xóa sau khi gửi và quét định kỳ.
 
