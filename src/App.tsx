@@ -15,7 +15,7 @@ export default function App() {
       <div className="app">
       <Header platform={platform} theme={theme} onPlatform={setPlatform}
         onTheme={() => setTheme(t => (t === 'day' ? 'night' : 'day'))} />
-      <main key={platform} className="stage">
+      <main key={platform} className="stage" data-side={platform === 'facebook' || platform === 'instagram'}>
         {platform !== 'home' && <PlatformPage platform={platform} />}
       </main>
       <Footer />

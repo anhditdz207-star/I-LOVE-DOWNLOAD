@@ -13,7 +13,7 @@ export default function PillSwitch({ group, items, platform, theme, onPlatform, 
   const [l, r] = items
   const inGroup = platform === l.id || platform === r.id
   const hidden = platform !== 'home' && !inGroup     // the other group's pill hides while one is in use
-  const vertical = group === 'b' || inGroup
+  const vertical = group === 'b'   // each pill keeps its own place: A stays horizontal on top, B stays vertical on the left
   const [dx, setDx] = useState(0)
   const [drag, setDrag] = useState(false)
   const x0 = useRef(0), moved = useRef(false)

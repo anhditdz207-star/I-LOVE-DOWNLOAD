@@ -137,3 +137,7 @@ html,body{height:100%;overflow:hidden}
 .pill.hidden{opacity:0;scale:.85;visibility:hidden;pointer-events:none;
   transition:left .8s cubic-bezier(.7,0,.2,1),top .8s cubic-bezier(.7,0,.2,1),width .8s cubic-bezier(.7,0,.2,1),rotate .8s cubic-bezier(.7,0,.2,1),opacity .5s,scale .5s,visibility 0s .5s}
 @media(max-width:640px){.scene{--w:calc(100vw - 108px);--sx:38px}}
+
+.stage{padding-left:0}
+.stage[data-side=true]{padding-left:clamp(72px,9vw,110px)}
+@media(max-width:640px){.stage[data-side=true]{padding-left:80px}}

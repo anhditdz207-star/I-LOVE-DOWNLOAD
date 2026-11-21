@@ -7,7 +7,7 @@ type P = { platform: Platform; theme: Theme; onPlatform: (p: Platform) => void; 
 export default function Header({ platform, theme, onPlatform, onTheme }: P) {
   const shared = { platform, theme, onPlatform, onTheme }
   return (
-    <header className="hdr" data-side={platform !== 'home'}>
+    <header className="hdr" data-side={platform === 'facebook' || platform === 'instagram'}>
       <button className="brand" onClick={() => onPlatform('home')} aria-label="Về trang chủ">
         <img src={`${import.meta.env.BASE_URL}logo.png`} alt="" width={52} height={52} />
         <span>I LOVE DOWNLOAD</span>
