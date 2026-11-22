@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Platform } from '../types'
+import type { Prefill } from '../App'
 import { checkUrl, fetchInfo, type MediaInfo } from '../api'
 import ResultPanel from './ResultPanel'
 
 type State = { s: 'idle' } | { s: 'loading' } | { s: 'error'; msg: string } | { s: 'done'; info: MediaInfo; url: string }
+type P = { platform: Exclude<Platform, 'home'>; prefill: Prefill | null }
 
-export default function PlatformPage({ platform }: { platform: Exclude<Platform, 'home'> }) {
+export default function PlatformPage({ platform, prefill }: P) {
   const name = { youtube: 'YouTube', tiktok: 'TikTok', facebook: 'Facebook', instagram: 'Instagram' }[platform]
-  const [url, setUrl] = useState('')
+  const mine = prefill && prefill.platform === platform ? prefill : null
+  const [url, setUrl] = useState(mine?.url ?? '')
   const [st, setSt] = useState<State>({ s: 'idle' })
   const [slow, setSlow] = useState(false)
+  useEffect(() => { if (mine) { setUrl(mine.url); setSt({ s: 'idle' }) } }, [mine?.n]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (st.s !== 'loading') { setSlow(false); return }
     const t = setTimeout(() => setSlow(true), 6000)
@@ -35,12 +39,9 @@ export default function PlatformPage({ platform }: { platform: Exclude<Platform,
           <svg viewBox="0 -1 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round"><path d="M9 3h6v8h4l-7 8-7-8h4z" /></svg>
         </button>
       </form>
-      <div className="preview frame">
-        {st.s === 'idle' && <p className="hint">Dán liên kết video bạn có quyền tải, rồi bấm mũi tên. Thông tin video sẽ hiện ở đây.</p>}
-        {st.s === 'loading' && <div className="loader" role="status"><i /><i /><i /><span>{slow ? 'Máy chủ miễn phí đang thức dậy, có thể mất tới 1 phút…' : 'Đang lấy thông tin…'}</span></div>}
-        {st.s === 'error' && <p className="err" role="alert">{st.msg}</p>}
-        {st.s === 'done' && <ResultPanel info={st.info} url={st.url} />}
-      </div>
+      {st.s === 'loading' && <div className="preview frame compact"><div className="loader" role="status"><i /><i /><i /><span>{slow ? 'Máy chủ miễn phí đang thức dậy, có thể mất tới 1 phút…' : 'Đang lấy thông tin…'}</span></div></div>}
+      {st.s === 'error' && <div className="preview frame compact"><p className="err" role="alert">{st.msg}</p></div>}
+      {st.s === 'done' && <ResultPanel key={st.url} info={st.info} url={st.url} platform={platform} />}
     </section>
   )
 }

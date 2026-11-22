@@ -47,6 +47,12 @@
 - [x] Khi bài đăng không có video, backend thử tìm ảnh bằng gallery-dl, tải về một tệp hoặc .zip; giao diện có tab ẢNH (24 test pass, dữ liệu giả)
 - [ ] Chưa thử tải ảnh thật; Instagram và Facebook thường cần đăng nhập nên có thể báo lỗi
 
+## Giao diện trang tải (v2)
+- [x] Lúc đầu chỉ có ô nhập + nút mũi tên; khung chỉ hiện sau khi bấm
+- [x] Tab VIDEO / AUDIO / PICTURE nằm góc phải trên khung; PICTURE chỉ hiện khi bài có ảnh, hiện ảnh thật để tick chọn tải
+- [x] Lịch sử (nút sách) dưới tên nền tảng góc phải trên, lưu trong trình duyệt từng máy; nhớ chế độ sáng/tối từng máy
+- [ ] Chưa xem trên trình duyệt thật; ảnh Instagram/Facebook có thể cần đăng nhập
+
 ## Milestone 5 — Integration
 - [ ] Chạy thật frontend + backend trên Windows 11 (cần người dùng thử, gửi lại lỗi nếu có)
 - [ ] Sửa lỗi tương tác, thêm tiến trình tải nếu cần

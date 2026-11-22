@@ -1,10 +1,12 @@
 import type { Platform, Theme } from '../types'
+import type { HEntry } from '../history'
 import PillSwitch from './PillSwitch'
+import History from './History'
 import { PlatformBadge } from './icons'
 import { GROUP_A, GROUP_B } from '../platforms'
 
-type P = { platform: Platform; theme: Theme; onPlatform: (p: Platform) => void; onTheme: () => void }
-export default function Header({ platform, theme, onPlatform, onTheme }: P) {
+type P = { platform: Platform; theme: Theme; onPlatform: (p: Platform) => void; onTheme: () => void; onPick: (e: HEntry) => void }
+export default function Header({ platform, theme, onPlatform, onTheme, onPick }: P) {
   const shared = { platform, theme, onPlatform, onTheme }
   return (
     <header className="hdr" data-side={platform === 'facebook' || platform === 'instagram'}>
@@ -17,7 +19,10 @@ export default function Header({ platform, theme, onPlatform, onTheme }: P) {
         <p className="tip">bấm đúp để đổi chế độ sáng</p>
       </div>
       <PillSwitch group="b" items={GROUP_B} {...shared} />
-      <div className="badge-slot">{platform !== 'home' && <PlatformBadge platform={platform} />}</div>
+      <div className="badge-slot">
+        {platform !== 'home' && <PlatformBadge platform={platform} />}
+        <History onPick={onPick} />
+      </div>
     </header>
   )
 }

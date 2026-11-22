@@ -1,6 +1,6 @@
 """Photo posts (TikTok photo mode, Facebook, Instagram) via gallery-dl, run as a separate process.
 Only URLs already validated against the allow-list reach this module; arguments are a fixed list (no shell)."""
-import json, os, subprocess, sys, zipfile
+import os, re, subprocess, sys, zipfile
 
 IMG_EXT = {"jpg", "jpeg", "png", "webp", "gif", "avif"}
 _FILTER = "extension in ('jpg','jpeg','png','webp','gif','avif')"
@@ -17,35 +17,29 @@ def _run(args: list[str], timeout: int) -> subprocess.CompletedProcess:
     except subprocess.TimeoutExpired:
         raise ImageError("timeout")
 
-def _kind(stderr: str) -> str:
-    s = stderr.lower()
-    return "login" if any(k in s for k in ("login", "authrequired", "401", "403", "cookies")) else "none"
+def _kind(text: str) -> str:
+    s = text.lower()
+    return "login" if any(k in s for k in ("login", "auth", "401", "403", "cookies")) else "none"
 
-def list_images(url: str) -> list[str]:
-    """Returns the file extensions of the images in the post (empty list if none)."""
-    p = _run(["-j", url], 45)
-    try:
-        entries = json.loads(p.stdout or "[]")
-    except ValueError:
-        entries = []
-    items = [e for e in entries if isinstance(e, list) and e]
-    exts = [str((e[2] if len(e) > 2 else {}).get("extension", "")).lower() for e in items if e[0] == 3]
-    exts = [x for x in exts if x in IMG_EXT]
-    if not exts:
-        errs = " ".join(json.dumps(e[1]) for e in items if e[0] == -1 and len(e) > 1)  # gallery-dl reports errors inside the JSON stream
-        if errs or p.returncode != 0 or p.stderr.strip():
-            raise ImageError(_kind(errs + " " + p.stderr))
-    return exts
+def _nat(name: str) -> list:
+    return [int(x) if x.isdigit() else x.lower() for x in re.split(r"(\d+)", name)]
 
-def download_all(url: str, job_dir: str, max_mb: int) -> tuple[str, str]:
-    p = _run(["-D", job_dir, "--filter", _FILTER, "--filesize-max", f"{max_mb}M", url], 120)
-    files = sorted(f for f in os.listdir(job_dir) if f.rsplit(".", 1)[-1].lower() in IMG_EXT)
-    if not files:
+def list_files(job_dir: str) -> list[str]:
+    names = [f for f in os.listdir(job_dir) if f.rsplit(".", 1)[-1].lower() in IMG_EXT]
+    return sorted(names, key=_nat)
+
+def fetch(url: str, job_dir: str, max_mb: int, max_count: int) -> None:
+    """Downloads the post's images into job_dir. Raises ImageError if there are none."""
+    p = _run(["-D", job_dir, "--filter", _FILTER, "--filesize-max", f"{max_mb}M", "--range", f"1-{max_count}", url], 120)
+    if not list_files(job_dir):
         raise ImageError(_kind(p.stderr))
-    if len(files) == 1:
-        return os.path.join(job_dir, files[0]), "anh"
-    zpath = os.path.join(job_dir, "anh.zip")
+
+def pack(job_dir: str, names: list[str], out_dir: str) -> tuple[str, str]:
+    """One image -> the file itself. Several -> a zip placed in out_dir. Returns (path, download filename)."""
+    if len(names) == 1:
+        return os.path.join(job_dir, names[0]), names[0]
+    zpath = os.path.join(out_dir, "anh.zip")
     with zipfile.ZipFile(zpath, "w", zipfile.ZIP_STORED) as z:
-        for f in files:
+        for f in names:
             z.write(os.path.join(job_dir, f), f)
-    return zpath, "anh"
+    return zpath, "anh.zip"

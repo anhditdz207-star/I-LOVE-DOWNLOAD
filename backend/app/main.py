@@ -1,4 +1,4 @@
-import os, re, shutil, threading, time
+import os, re, shutil, tempfile, threading, time
 from collections import defaultdict, deque
 from typing import Literal
 
@@ -86,6 +86,54 @@ def image_error(ie: "images.ImageError", original: Exception) -> HTTPException:
         return HTTPException(422, "Nội dung này cần đăng nhập hoặc không công khai nên không tải được. Chỉ hỗ trợ nội dung công khai.")
     return vi_error(original)
 
+MAX_IMAGES = 30
+TOKEN = re.compile(r"[0-9a-f]{16}")
+
+def collect_images(url: str) -> dict:
+    token = os.urandom(8).hex()
+    job = os.path.join(config.TMP_DIR, "img-" + token)
+    os.makedirs(job)
+    try:
+        images.fetch(url, job, config.MAX_FILESIZE // 1048576, MAX_IMAGES)
+    except Exception:
+        shutil.rmtree(job, ignore_errors=True)
+        raise
+    names = images.list_files(job)
+    return {"imageToken": token, "images": [{"id": str(i), "label": f"Ảnh {i}", "ext": n.rsplit(".", 1)[-1].lower(), "thumb": f"/api/img/{token}/{i}"} for i, n in enumerate(names, 1)]}
+
+def serve_images(token: str, sel: str | None, bg: BackgroundTasks):
+    if not TOKEN.fullmatch(token):
+        raise HTTPException(400, "Phiên xem ảnh không hợp lệ.")
+    job = os.path.join(config.TMP_DIR, "img-" + token)
+    if not os.path.isdir(job):
+        raise HTTPException(410, "Phiên xem ảnh đã hết hạn. Hãy bấm lấy thông tin lại.")
+    names = images.list_files(job)
+    if sel is None:
+        idx = list(range(1, len(names) + 1))
+    else:
+        if not re.fullmatch(r"\d{1,3}(,\d{1,3})*", sel):
+            raise HTTPException(400, "Lựa chọn ảnh không hợp lệ.")
+        idx = sorted({int(x) for x in sel.split(",") if 1 <= int(x) <= len(names)})
+    if not idx:
+        raise HTTPException(400, "Bạn chưa chọn ảnh nào.")
+    out_dir = tempfile.mkdtemp(dir=config.TMP_DIR)
+    path, fname = images.pack(job, [names[i - 1] for i in idx], out_dir)
+    if path.startswith(out_dir):
+        bg.add_task(shutil.rmtree, out_dir, True)
+    else:
+        shutil.rmtree(out_dir, ignore_errors=True)
+    return FileResponse(path, filename=fname)
+
+@app.get("/api/img/{token}/{n}")
+def thumb(token: str, n: int):
+    job = os.path.join(config.TMP_DIR, "img-" + token)
+    if not TOKEN.fullmatch(token) or n < 1 or not os.path.isdir(job):
+        raise HTTPException(404, "Không tìm thấy ảnh.")
+    names = images.list_files(job)
+    if n > len(names):
+        raise HTTPException(404, "Không tìm thấy ảnh.")
+    return FileResponse(os.path.join(job, names[n - 1]), headers={"Cache-Control": "private, max-age=600"})
+
 class InfoReq(BaseModel):
     url: str
     platform: Literal["youtube", "tiktok", "facebook", "instagram"]
@@ -103,53 +151,53 @@ def info(req: InfoReq):
     try:
         data = extract_info(url)
     except DownloadError as e:
-        if req.platform != "youtube" and "not a bot" not in str(e).lower() and "sign in to confirm" not in str(e).lower():
+        blocked = "not a bot" in str(e).lower() or "sign in to confirm" in str(e).lower()
+        if req.platform != "youtube" and not blocked:
             try:  # no video in this post? maybe it is a photo post
-                exts = images.list_images(url)
+                out = build_info({"title": "Ảnh từ bài đăng"})
+                out["audio"] = []
+                out.update(collect_images(url))
+                return out
             except images.ImageError as ie:
                 raise image_error(ie, e)
-            if exts:
-                n = len(exts)
-                out = build_info({"title": "Ảnh từ bài đăng"})
-                out["images"] = [{"id": "all", "label": f"Tất cả {n} ảnh (.zip)" if n > 1 else "Ảnh gốc (1 ảnh)", "ext": "zip" if n > 1 else exts[0], "filesize": None}]
-                return out
         raise vi_error(e)
-    return build_info(data, config.MAX_HEIGHT)
+    out = build_info(data, config.MAX_HEIGHT)
+    if req.platform != "youtube" and not out["video"]:  # e.g. photo slideshow that still has a sound track
+        try:
+            out.update(collect_images(url))
+        except images.ImageError:
+            pass
+    return out
 
 @app.get("/api/download", dependencies=[Depends(rate_limit)])
-def download(url: str, kind: Literal["video", "audio", "image"], id: str, bg: BackgroundTasks):
+def download(url: str, kind: Literal["video", "audio", "image"], id: str, bg: BackgroundTasks, sel: str | None = None):
     try:
         url = validate_url(platform_of(url), url)
     except UnsafeUrl:
         raise HTTPException(400, "Liên kết không hợp lệ hoặc không thuộc nền tảng được hỗ trợ.")
     if kind == "image":
-        if id != "all":
-            raise HTTPException(400, "Lựa chọn ảnh không hợp lệ.")
-        opts = {}
-    elif kind == "video":
+        return serve_images(id, sel, bg)
+    if kind == "video":
         if not re.fullmatch(r"\d{3,4}|best", id):
             raise HTTPException(400, "Chất lượng video không hợp lệ.")
         if id != "best" and config.MAX_HEIGHT and int(id) > config.MAX_HEIGHT:
             raise HTTPException(400, "Chất lượng này vượt giới hạn của máy chủ.")
         cap = f"[height<={config.MAX_HEIGHT}]" if config.MAX_HEIGHT else ""
-        sel = f"bv*{cap}+ba/b{cap}" if id == "best" else f"bv*[height<={id}]+ba/b[height<={id}]"
-        opts = {"format": sel, "merge_output_format": "mp4", "format_sort": ["res", "vcodec:h264", "acodec:aac"]}
+        fmt = f"bv*{cap}+ba/b{cap}" if id == "best" else f"bv*[height<={id}]+ba/b[height<={id}]"
+        opts = {"format": fmt, "merge_output_format": "mp4", "format_sort": ["res", "vcodec:h264", "acodec:aac"]}
     else:
         if id not in AUDIO_IDS:
             raise HTTPException(400, "Định dạng âm thanh không hợp lệ.")
         codec, br = AUDIO_IDS[id]
         opts = {"format": "bestaudio/best", "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": codec, "preferredquality": str(br or 0)}]}
-    if kind != "image" and not shutil.which("ffmpeg"):
+    if not shutil.which("ffmpeg"):
         raise HTTPException(503, "Máy chủ chưa cài FFmpeg.")
     if not _slots.acquire(blocking=False):
         raise HTTPException(429, "Máy chủ đang bận xử lý một tệp khác. Hãy thử lại sau ít phút.")
     job = os.path.join(config.TMP_DIR, os.urandom(8).hex())
     os.makedirs(job)
     try:
-        path, title = images.download_all(url, job, config.MAX_FILESIZE // 1048576) if kind == "image" else run_download(url, opts, job)
-    except images.ImageError as ie:
-        shutil.rmtree(job, ignore_errors=True)
-        raise image_error(ie, DownloadError("unavailable"))
+        path, title = run_download(url, opts, job)
     except DownloadError as e:
         shutil.rmtree(job, ignore_errors=True)
         raise vi_error(e)

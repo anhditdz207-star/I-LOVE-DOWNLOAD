@@ -73,45 +73,57 @@ def test_max_height_cap(monkeypatch):
     assert [v["id"] for v in d["video"]] == ["360"]
     assert c.get("/api/download", params={"url": "https://youtu.be/abc", "kind": "video", "id": "720"}).status_code == 400
 
+import io, zipfile
+from yt_dlp.utils import DownloadError
+
 def _no_video(u):
-    from yt_dlp.utils import DownloadError
     raise DownloadError("There is no video in this post")
 
-def test_photo_post_fallback(monkeypatch):
+def _fake_fetch(names):
+    def f(url, job, mb, n):
+        for x in names:
+            open(os.path.join(job, x), "wb").write(x.encode())
+    return f
+
+def test_photo_post_gives_images_and_thumbs(monkeypatch):
     monkeypatch.setattr(main, "extract_info", _no_video)
-    monkeypatch.setattr(main.images, "list_images", lambda u: ["jpg", "jpg", "png"])
+    monkeypatch.setattr(main.images, "fetch", _fake_fetch(["10.jpg", "2.jpg", "1.png"]))
+    d = c.post("/api/info", json={"url": "https://www.tiktok.com/@a/photo/1", "platform": "tiktok"}).json()
+    assert d["video"] == [] and d["audio"] == [] and [i["id"] for i in d["images"]] == ["1", "2", "3"]
+    assert c.get(d["images"][1]["thumb"]).content == b"2.jpg"      # natural order: 1.png, 2.jpg, 10.jpg
+    assert c.get("/api/img/zzzzzzzzzzzzzzzz/1").status_code == 404
+    assert c.get(d["images"][0]["thumb"].rsplit("/", 1)[0] + "/9").status_code == 404
+
+def test_photo_selection_download(monkeypatch):
+    monkeypatch.setattr(main, "extract_info", _no_video)
+    monkeypatch.setattr(main.images, "fetch", _fake_fetch(["1.jpg", "2.jpg", "3.jpg"]))
     d = c.post("/api/info", json={"url": "https://www.instagram.com/p/abc/", "platform": "instagram"}).json()
-    assert d["video"] == [] and d["images"][0]["id"] == "all" and "3 ảnh" in d["images"][0]["label"]
+    tok, u = d["imageToken"], "https://www.instagram.com/p/abc/"
+    r = c.get("/api/download", params={"url": u, "kind": "image", "id": tok, "sel": "2"})
+    assert r.status_code == 200 and r.content == b"2.jpg"
+    r = c.get("/api/download", params={"url": u, "kind": "image", "id": tok, "sel": "1,3"})
+    assert zipfile.ZipFile(io.BytesIO(r.content)).namelist() == ["1.jpg", "3.jpg"]
+    r = c.get("/api/download", params={"url": u, "kind": "image", "id": tok})
+    assert len(zipfile.ZipFile(io.BytesIO(r.content)).namelist()) == 3
+    assert c.get("/api/download", params={"url": u, "kind": "image", "id": tok, "sel": "9"}).status_code == 400
+    assert c.get("/api/download", params={"url": u, "kind": "image", "id": tok, "sel": "1;x"}).status_code == 400
+    assert c.get("/api/download", params={"url": u, "kind": "image", "id": "../../etc/passwd"}).status_code == 400
+    assert c.get("/api/download", params={"url": u, "kind": "image", "id": "0123456789abcdef"}).status_code == 410
 
 def test_photo_login_message(monkeypatch):
     monkeypatch.setattr(main, "extract_info", _no_video)
-    def boom(u): raise main.images.ImageError("login")
-    monkeypatch.setattr(main.images, "list_images", boom)
+    def boom(*a): raise main.images.ImageError("login")
+    monkeypatch.setattr(main.images, "fetch", boom)
     r = c.post("/api/info", json={"url": "https://www.instagram.com/p/abc/", "platform": "instagram"})
     assert r.status_code == 422 and "đăng nhập" in r.json()["detail"]
 
-def test_youtube_never_uses_image_fallback(monkeypatch):
+def test_youtube_never_uses_images(monkeypatch):
     monkeypatch.setattr(main, "extract_info", _no_video)
-    monkeypatch.setattr(main.images, "list_images", lambda u: (_ for _ in ()).throw(AssertionError("must not be called")))
+    monkeypatch.setattr(main.images, "fetch", lambda *a: (_ for _ in ()).throw(AssertionError("no")))
     assert c.post("/api/info", json={"url": "https://youtu.be/abc", "platform": "youtube"}).status_code == 422
 
-def test_image_download(monkeypatch):
-    def fake(url, job, mb):
-        p = os.path.join(job, "a.jpg"); open(p, "wb").write(b"img"); return p, "anh"
-    monkeypatch.setattr(main.images, "download_all", fake)
-    r = c.get("/api/download", params={"url": "https://www.instagram.com/p/abc/", "kind": "image", "id": "all"})
-    assert r.status_code == 200 and r.content == b"img" and os.listdir(config.TMP_DIR) == []
-    assert c.get("/api/download", params={"url": "https://www.instagram.com/p/abc/", "kind": "image", "id": "x"}).status_code == 400
-
-def test_images_parse_gallery_dl_errors(monkeypatch):
-    import subprocess, json
-    from app import images
-    def fake(args, timeout):
-        out = json.dumps([[-1, {"error": "AuthRequired", "message": "login required"}]])
-        return subprocess.CompletedProcess(args, 0, out, "")
-    monkeypatch.setattr(images, "_run", fake)
-    with pytest.raises(images.ImageError) as e:
-        images.list_images("https://www.instagram.com/p/abc/")
-    assert e.value.kind == "login"
-    monkeypatch.setattr(images, "_run", lambda a, t: subprocess.CompletedProcess(a, 0, json.dumps([[2, {}], [3, "u", {"extension": "jpg"}], [3, "v", {"extension": "mp4"}]]), ""))
-    assert images.list_images("https://www.instagram.com/p/abc/") == ["jpg"]
+def test_audio_only_tiktok_also_checks_images(monkeypatch):
+    monkeypatch.setattr(main, "extract_info", lambda u: {"title": "T", "formats": [{"acodec": "aac", "vcodec": "none", "abr": 128}]})
+    monkeypatch.setattr(main.images, "fetch", _fake_fetch(["1.jpg"]))
+    d = c.post("/api/info", json={"url": "https://www.tiktok.com/@a/photo/1", "platform": "tiktok"}).json()
+    assert d["video"] == [] and len(d["audio"]) == 8 and len(d["images"]) == 1
