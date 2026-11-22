@@ -50,8 +50,13 @@
 ## Giao diện trang tải (v2)
 - [x] Lúc đầu chỉ có ô nhập + nút mũi tên; khung chỉ hiện sau khi bấm
 - [x] Tab VIDEO / AUDIO / PICTURE nằm góc phải trên khung; PICTURE chỉ hiện khi bài có ảnh, hiện ảnh thật để tick chọn tải
-- [x] Lịch sử (nút sách) dưới tên nền tảng góc phải trên, lưu trong trình duyệt từng máy; nhớ chế độ sáng/tối từng máy
+- [x] Lịch sử tra cứu (nút sách) dưới tên nền tảng góc phải trên, mỗi mục một lịch sử, bấm để tra cứu lại, lưu trong trình duyệt từng máy; nhớ chế độ sáng/tối từng máy
 - [ ] Chưa xem trên trình duyệt thật; ảnh Instagram/Facebook có thể cần đăng nhập
+
+## YouTube (phương án 1, đã chốt)
+- [x] YouTube chỉ chạy ổn bằng bản trên máy (start.bat, hoặc start.bat lan cho điện thoại cùng Wi-Fi); trang web công khai hiện khung hướng dẫn khi YouTube chặn máy chủ
+- [x] Thư mục `local/` (giao diện build sẵn, gọi backend cùng địa chỉ) nằm trong repo để tải zip từ GitHub là chạy được
+- [x] Favicon cắt sát rìa (public/favicon.png, favicon.ico)
 
 ## Milestone 5 — Integration
 - [ ] Chạy thật frontend + backend trên Windows 11 (cần người dùng thử, gửi lại lỗi nếu có)

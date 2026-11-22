@@ -211,6 +211,7 @@ def download(url: str, kind: Literal["video", "audio", "image"], id: str, bg: Ba
     return FileResponse(path, filename=f"{safe}{os.path.splitext(path)[1]}")
 
 # Serve the built frontend (dist/) from the same origin, so http://localhost:8000 works with no CORS or Node.
-STATIC = os.getenv("STATIC_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "dist"))
-if os.path.isfile(os.path.join(STATIC, "index.html")):
+_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+STATIC = os.getenv("STATIC_DIR") or next((p for p in (os.path.join(_root, "dist"), os.path.join(_root, "local")) if os.path.isfile(os.path.join(p, "index.html"))), "")
+if STATIC:
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="web")

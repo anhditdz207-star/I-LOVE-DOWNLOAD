@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { clearHistory, getHistory, type HEntry } from '../history'
 import { NAMES } from '../platforms'
+import type { Platform } from '../types'
 
-const KIND = { video: 'video', audio: 'audio', image: 'picture' } as const
 const when = (t: number) => new Date(t).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
-export default function History({ onPick }: { onPick: (e: HEntry) => void }) {
+export default function History({ platform, onPick }: { platform: Platform; onPick: (e: HEntry) => void }) {
   const [open, setOpen] = useState(false)
   const [list, setList] = useState<HEntry[]>(getHistory)
   const box = useRef<HTMLDivElement>(null)
+  const shown = list.filter(e => platform === 'home' || e.platform === platform)   // each section keeps its own history
   useEffect(() => {
     const f = () => setList(getHistory())
     window.addEventListener('ild-history', f)
@@ -31,13 +32,13 @@ export default function History({ onPick }: { onPick: (e: HEntry) => void }) {
       </button>
       {open && (
         <div className="hist-panel frame" role="dialog" aria-label="Lịch sử">
-          {list.length === 0 && <p className="empty">Chưa có gì. Những file bạn tải sẽ hiện ở đây (chỉ lưu trên máy này).</p>}
-          {list.map(e => (
-            <button key={`${e.t}-${e.label}`} className="hist-item" onClick={() => { onPick(e); setOpen(false) }} title="Dán lại liên kết này">
+          {shown.length === 0 && <p className="empty">Chưa có liên kết nào. Những link bạn đã tra cứu sẽ hiện ở đây (chỉ lưu trên máy này).</p>}
+          {shown.map(e => (
+            <button key={`${e.t}-${e.url}`} className="hist-item" onClick={() => { onPick(e); setOpen(false) }} title="Tra cứu lại liên kết này">
               <b>{e.title}</b>
-              <small>{NAMES[e.platform]} · {KIND[e.kind]} · {e.label} · {when(e.t)}</small>
+              <small>{platform === 'home' ? `${NAMES[e.platform]} · ` : ''}{when(e.t)}</small>
             </button>))}
-          {list.length > 0 && <button className="mini hist-clear" onClick={clearHistory}>Xóa lịch sử</button>}
+          {shown.length > 0 && <button className="mini hist-clear" onClick={clearHistory}>Xóa lịch sử</button>}
         </div>)}
     </div>
   )

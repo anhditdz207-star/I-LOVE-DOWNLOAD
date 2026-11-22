@@ -5,6 +5,10 @@ export type AudioOpt = { id: string; format: string; bitrate: number | null; fil
 export type ImageOpt = { id: string; label: string; ext: string; thumb: string }
 export type MediaInfo = { title: string; thumbnail: string | null; duration: number | null; uploader: string | null; video: VideoOpt[]; audio: AudioOpt[]; images?: ImageOpt[]; imageToken?: string }
 
+export class ApiError extends Error {
+  constructor(msg: string, public status: number) { super(msg) }
+}
+
 export const MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 const NAME = { youtube: 'YouTube', tiktok: 'TikTok', facebook: 'Facebook', instagram: 'Instagram' } as const
 const HOSTS: Record<Exclude<Platform, 'home'>, string[]> = {
@@ -37,7 +41,7 @@ export async function fetchInfo(p: Exclude<Platform, 'home'>, url: string): Prom
   } catch { throw new Error('Không kết nối được máy chủ. Hãy kiểm tra backend đang chạy và địa chỉ API.') }
   if (!res.ok) {
     const body = await res.json().catch(() => null)
-    throw new Error(body?.detail ?? `Máy chủ trả về lỗi (${res.status}). Hãy thử lại sau.`)
+    throw new ApiError(body?.detail ?? `Máy chủ trả về lỗi (${res.status}). Hãy thử lại sau.`, res.status)
   }
   return res.json()
 }

@@ -15,7 +15,7 @@ if /i "%1"=="rebuild" (
   echo VITE_API_BASE_URL=> .env.production.local
   call npm install && call npm run build
 )
-if not exist dist\index.html (echo Thieu thu muc dist. Chay: start.bat rebuild & pause & exit /b 1)
+if not exist dist\index.html if not exist local\index.html (echo Thieu thu muc local. Chay: start.bat rebuild & pause & exit /b 1)
 echo Mo http://localhost:8000 (dong cua so nay de tat may chu)
 start "" /b cmd /c "timeout /t 4 /nobreak >nul & start http://localhost:8000"
 set HOST=127.0.0.1

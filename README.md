@@ -7,7 +7,7 @@ winget install Python.Python.3.12
 winget install Gyan.FFmpeg
 winget install DenoLand.Deno
 ```
-Sau đó **bấm đúp `start.bat`**. Script tự tạo môi trường Python, cài thư viện, rồi mở http://localhost:8000. Giao diện và backend chạy cùng một địa chỉ nên không cần Node.js, không cần cấu hình CORS. Đóng cửa sổ đen để tắt. Máy chủ chỉ nghe ở `127.0.0.1`, người khác trong mạng không truy cập được.
+Sau đó **bấm đúp `start.bat`**. Script tự tạo môi trường Python, cài thư viện, rồi mở http://localhost:8000. Giao diện và backend chạy cùng một địa chỉ nên không cần Node.js (thư mục `local` đã có sẵn giao diện; nếu bạn tự build ra `dist` thì ưu tiên `dist`) và không cần cấu hình CORS. Đóng cửa sổ đen để tắt. Máy chủ chỉ nghe ở `127.0.0.1`, người khác trong mạng không truy cập được.
 Muốn build lại giao diện sau khi sửa code: cài Node.js rồi chạy `start.bat rebuild`.
 
 ## Dùng trên điện thoại (cùng Wi-Fi với máy tính)

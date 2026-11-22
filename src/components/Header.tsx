@@ -21,7 +21,7 @@ export default function Header({ platform, theme, onPlatform, onTheme, onPick }:
       <PillSwitch group="b" items={GROUP_B} {...shared} />
       <div className="badge-slot">
         {platform !== 'home' && <PlatformBadge platform={platform} />}
-        <History onPick={onPick} />
+        <History platform={platform} onPick={onPick} />
       </div>
     </header>
   )

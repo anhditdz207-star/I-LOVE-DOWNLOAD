@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import type { Platform } from '../types'
 import { API_BASE_URL } from '../types'
 import { downloadUrl, MOCK, type MediaInfo } from '../api'
-import { addHistory } from '../history'
 
 type Kind = 'video' | 'audio' | 'image'
 const TAB = { video: 'VIDEO', audio: 'AUDIO', image: 'PICTURE' } as const
@@ -10,7 +8,7 @@ const size = (n: number | null) => (n ? `${(n / 1048576).toFixed(1)} MB` : 'chư
 const dur = (s: number | null) => (s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : '')
 const Tick = () => <svg viewBox="0 0 10 10" width="14" height="14" shapeRendering="crispEdges" fill="currentColor" aria-hidden><path d="M1 5h2v2h1V6h1V5h1V4h1V3h1V2h1v1H8v1H7v1H6v1H5v1H4v1H3V7H1z" /></svg>
 
-export default function ResultPanel({ info, url, platform }: { info: MediaInfo; url: string; platform: Exclude<Platform, 'home'> }) {
+export default function ResultPanel({ info, url }: { info: MediaInfo; url: string }) {
   const imgs = info.images ?? []
   const tabs: Kind[] = imgs.length ? ['video', 'audio', 'image'] : ['video', 'audio']   // audio always; picture only when the post has photos
   const [kind, setKind] = useState<Kind>(info.video.length ? 'video' : imgs.length ? 'image' : info.audio.length ? 'audio' : 'video')
@@ -22,7 +20,6 @@ export default function ResultPanel({ info, url, platform }: { info: MediaInfo; 
     ? info.video.map(v => ({ id: v.id, label: `${v.label} · ${v.ext}`, filesize: v.filesize, ok: true }))
     : info.audio.map(a => ({ id: a.id, label: `${a.format}${a.bitrate ? ` · ${a.bitrate} kbps` : ['WAV', 'FLAC'].includes(a.format) ? ' · lossless' : ''}`, filesize: a.filesize, ok: a.available }))
   const chosen = opts.find(o => o.id === sel)
-  const log = (label: string) => addHistory({ t: Date.now(), platform, title: info.title, kind, label, url })
   const order = [...picked].sort((a, b) => Number(a) - Number(b)).join(',')
 
   return (
@@ -53,7 +50,7 @@ export default function ResultPanel({ info, url, platform }: { info: MediaInfo; 
                 <button className="mini" onClick={() => setPicked(new Set())}>Bỏ chọn</button></span>
               {picked.size === 0 ? <button className="go" disabled>Tải xuống</button>
                 : <a className="go" href={downloadUrl(url, 'image', info.imageToken ?? '', picked.size === imgs.length ? undefined : order)}
-                    onClick={() => log(`${picked.size} ảnh`)}>{picked.size === 1 ? 'Tải 1 ảnh' : `Tải ${picked.size} ảnh (.zip)`}</a>}
+                    >{picked.size === 1 ? 'Tải 1 ảnh' : `Tải ${picked.size} ảnh (.zip)`}</a>}
             </div>
           </>
         ) : opts.length === 0 ? (
@@ -68,7 +65,7 @@ export default function ResultPanel({ info, url, platform }: { info: MediaInfo; 
             <div className="pick">
               <span>{chosen ? `Đã chọn: ${chosen.label} · ${size(chosen.filesize)}` : 'Chọn một định dạng để tải.'}</span>
               {chosen && !MOCK
-                ? <a className="go" href={downloadUrl(url, kind, chosen.id)} onClick={() => log(chosen.label)}>Tải xuống</a>
+                ? <a className="go" href={downloadUrl(url, kind, chosen.id)}>Tải xuống</a>
                 : <button className="go" disabled>{MOCK ? 'Tắt ở chế độ giả' : 'Tải xuống'}</button>}
             </div>
           </>
