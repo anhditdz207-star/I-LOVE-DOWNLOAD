@@ -44,7 +44,7 @@ export default function PlatformPage({ platform, prefill }: P) {
   return (
     <section className="dl">
       <form className="searchbar" onSubmit={submit}>
-        <input type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder={`Dán liên kết ${name} vào đây`} aria-label={`Liên kết ${name}`} />
+        <input type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder={`Dán liên kết ${name} (video, ảnh hoặc trang cá nhân)`} aria-label={`Liên kết ${name}`} />
         <button type="submit" disabled={st.s === 'loading'} aria-label="Lấy thông tin để tải">
           <svg viewBox="0 -1 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round"><path d="M9 3h6v8h4l-7 8-7-8h4z" /></svg>
         </button>

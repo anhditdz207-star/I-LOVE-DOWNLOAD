@@ -5,6 +5,11 @@ from app import config, main
 from app.security import UnsafeUrl, validate_url
 
 c = TestClient(main.app)
+
+@pytest.fixture(autouse=True)
+def _isolate(monkeypatch, tmp_path):
+    main._hits.clear()
+    monkeypatch.setattr(config, "TMP_DIR", str(tmp_path))   # every test gets its own empty temp folder
 FAKE = {"title": "T", "duration": 100, "formats": [
     {"vcodec": "avc1", "acodec": "none", "height": 360, "filesize": 1000},
     {"vcodec": "vp9", "acodec": "none", "height": 720, "filesize": 5000},
@@ -127,3 +132,58 @@ def test_audio_only_tiktok_also_checks_images(monkeypatch):
     monkeypatch.setattr(main.images, "fetch", _fake_fetch(["1.jpg"]))
     d = c.post("/api/info", json={"url": "https://www.tiktok.com/@a/photo/1", "platform": "tiktok"}).json()
     assert d["video"] == [] and len(d["audio"]) == 8 and len(d["images"]) == 1
+
+from app.security import profile_avatar_url
+
+@pytest.mark.parametrize("p,u,want", [
+    ("tiktok", "https://www.tiktok.com/@some.user_1", "https://www.tiktok.com/@some.user_1/avatar"),
+    ("tiktok", "https://www.tiktok.com/@some.user_1/", "https://www.tiktok.com/@some.user_1/avatar"),
+    ("tiktok", "https://www.tiktok.com/@u/video/123", None),
+    ("instagram", "https://www.instagram.com/some.user/?igsh=abc", "https://www.instagram.com/some.user/avatar/"),
+    ("instagram", "https://www.instagram.com/reel/abc/", None),
+    ("instagram", "https://www.instagram.com/p/abc/", None),
+    ("facebook", "https://www.facebook.com/some.page", "https://www.facebook.com/some.page/avatar"),
+    ("facebook", "https://www.facebook.com/watch", None),
+    ("facebook", "https://fb.watch/abc", None),
+    ("youtube", "https://www.youtube.com/@x", None)])
+def test_profile_avatar_url(p, u, want):
+    assert profile_avatar_url(p, u) == want
+
+def test_avatar_flow_uses_built_url(monkeypatch):
+    seen = {}
+    def fake(url, job, mb, n):
+        seen["url"] = url; open(os.path.join(job, "a.jpeg"), "wb").write(b"av")
+    monkeypatch.setattr(main.images, "fetch", fake)
+    monkeypatch.setattr(main, "extract_info", lambda u: (_ for _ in ()).throw(AssertionError("must not run yt-dlp for a profile link")))
+    d = c.post("/api/info", json={"url": "https://www.tiktok.com/@crush.cute?lang=vi", "platform": "tiktok"}).json()
+    assert seen["url"] == "https://www.tiktok.com/@crush.cute/avatar"
+    assert d["avatar"] is True and d["video"] == [] and d["audio"] == [] and len(d["images"]) == 1 and "crush.cute" in d["title"]
+    assert c.get(d["images"][0]["thumb"]).content == b"av"
+
+def test_avatar_errors_are_friendly(monkeypatch):
+    def boom(*a): raise main.images.ImageError("none")
+    monkeypatch.setattr(main.images, "fetch", boom)
+    r = c.post("/api/info", json={"url": "https://www.instagram.com/some.user/", "platform": "instagram"})
+    assert r.status_code == 422 and "ảnh đại diện" in r.json()["detail"]
+
+def test_cover_download(monkeypatch):
+    def fake(url, opts, job):
+        assert opts["writethumbnail"] and opts["skip_download"]
+        p = os.path.join(job, "v.jpg"); open(p, "wb").write(b"cover"); return p, "Tiêu đề"
+    monkeypatch.setattr(main, "run_download", fake)
+    monkeypatch.setattr(main.shutil, "which", lambda n: "/usr/bin/ffmpeg")
+    u = "https://www.tiktok.com/@a/video/1"
+    r = c.get("/api/download", params={"url": u, "kind": "cover", "id": "thumb"})
+    assert r.status_code == 200 and r.content == b"cover" and os.listdir(config.TMP_DIR) == []
+    assert c.get("/api/download", params={"url": u, "kind": "cover", "id": "x;y"}).status_code == 400
+
+def test_error_detail_and_build(monkeypatch):
+    def boom(*a): raise main.images.ImageError("login", "HTTP redirect to login page")
+    monkeypatch.setattr(main.images, "fetch", boom)
+    r = c.post("/api/info", json={"url": "https://www.tiktok.com/@crush.cute", "platform": "tiktok"})
+    assert r.status_code == 422 and "chi tiết: HTTP redirect to login page" in r.json()["detail"] and "start.bat" in r.json()["detail"]
+    assert "build" in c.get("/healthz").json()
+
+def test_error_kind_classification():
+    from app.images import _kind
+    assert _kind("HTTP redirect to login page") == "login" and _kind("HttpError: 403 Forbidden") == "blocked" and _kind("weird") == "none"

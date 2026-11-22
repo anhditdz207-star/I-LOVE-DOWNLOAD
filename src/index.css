@@ -174,3 +174,5 @@ html,body{height:100%;overflow:hidden}
 .help{margin:0;padding-left:22px;line-height:1.8;font-size:14px}
 .help a{color:var(--roof);font-weight:600}
 .help code{font:600 13px ui-monospace,Consolas,monospace;padding:1px 5px;border:2px solid var(--ink);background:color-mix(in srgb,var(--ink) 8%,var(--page))}
+
+.mini.cover{display:inline-block;margin:8px 0 0;text-decoration:none}

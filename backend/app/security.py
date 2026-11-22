@@ -1,3 +1,4 @@
+import re
 from urllib.parse import urlparse
 
 HOSTS = {
@@ -33,3 +34,22 @@ def platform_of(raw: str) -> str:
         except UnsafeUrl:
             continue
     raise UnsafeUrl("invalid")
+
+_RESERVED = {"p", "reel", "reels", "tv", "stories", "explore", "accounts", "watch", "photo", "photo.php", "groups", "share", "story.php",
+             "permalink.php", "profile.php", "login", "hashtag", "marketplace", "events", "pages", "gaming", "public", "sharer",
+             "sharer.php", "posts", "videos", "video", "live", "help", "privacy", "policies"}
+
+def profile_avatar_url(platform: str, raw: str) -> str | None:
+    """If `raw` (already validated) is a bare profile link, return the gallery-dl avatar URL for that account, else None."""
+    u = urlparse(raw.strip())
+    host, path = (u.hostname or "").lower(), u.path.rstrip("/")
+    if platform == "tiktok" and host.endswith("tiktok.com"):
+        m = re.fullmatch(r"/@([A-Za-z0-9._]{1,64})", path)
+        return f"https://www.tiktok.com/@{m[1]}/avatar" if m else None
+    if platform == "instagram":
+        m = re.fullmatch(r"/([A-Za-z0-9._]{1,30})", path)
+        return f"https://www.instagram.com/{m[1]}/avatar/" if m and m[1].lower() not in _RESERVED else None
+    if platform == "facebook" and host.endswith("facebook.com"):
+        m = re.fullmatch(r"/([A-Za-z0-9.\-]{1,80})", path)
+        return f"https://www.facebook.com/{m[1]}/avatar" if m and m[1].lower() not in _RESERVED else None
+    return None

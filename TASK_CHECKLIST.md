@@ -58,6 +58,14 @@
 - [x] Thư mục `local/` (giao diện build sẵn, gọi backend cùng địa chỉ) nằm trong repo để tải zip từ GitHub là chạy được
 - [x] Favicon cắt sát rìa (public/favicon.png, favicon.ico)
 
+## Ảnh đại diện (avatar)
+- [x] Dán link trang cá nhân (TikTok @user, Insta, Phở Bò) thì lấy ảnh đại diện bản lớn qua gallery-dl (extractor avatar có sẵn, đã kiểm tra mã nguồn); 36 test pass bằng dữ liệu giả
+- [ ] Chưa thử thật; Instagram/Facebook có thể cần đăng nhập, TikTok có thể bị chặn IP máy chủ
+
+## Chẩn đoán và ảnh bìa
+- [x] /healthz có trường build (2026-11-23-avatar-cover) để biết Render đang chạy bản nào
+- [x] Lỗi ảnh/avatar có kèm "chi tiết" từ gallery-dl, phân biệt đăng nhập / bị chặn IP; nút "Tải ảnh bìa" cho video (chưa thử thật)
+
 ## Milestone 5 — Integration
 - [ ] Chạy thật frontend + backend trên Windows 11 (cần người dùng thử, gửi lại lỗi nếu có)
 - [ ] Sửa lỗi tương tác, thêm tiến trình tải nếu cần

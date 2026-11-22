@@ -13,8 +13,9 @@ from yt_dlp.utils import DownloadError
 from . import config
 from . import images
 from .formats import AUDIO_IDS, build_info
-from .security import UnsafeUrl, platform_of, validate_url
+from .security import UnsafeUrl, platform_of, profile_avatar_url, validate_url
 
+BUILD = "2026-11-23-avatar-cover"
 os.makedirs(config.TMP_DIR, exist_ok=True)
 app = FastAPI(title="I LOVE DOWNLOAD API", docs_url=None, redoc_url=None)
 app.add_middleware(CORSMiddleware, allow_origins=config.ALLOWED_ORIGINS, allow_methods=["GET", "POST"], allow_headers=["Content-Type"], allow_private_network=True)  # lets a public page (GitHub Pages) call this local backend
@@ -79,11 +80,27 @@ def vi_error(e: Exception) -> HTTPException:
         return HTTPException(422, "Video không còn khả dụng hoặc bị giới hạn ở khu vực của máy chủ.")
     return HTTPException(422, "Không lấy được video. Hãy kiểm tra liên kết hoặc thử lại sau.")
 
+def _tail(ie: "images.ImageError") -> str:
+    return f" (chi tiết: {ie.detail})" if getattr(ie, "detail", "") else ""
+
+LOCAL_HINT = " Bản chạy trên máy bạn (start.bat) dùng IP nhà nên thường qua được."
+
+def avatar_error(ie: "images.ImageError") -> HTTPException:
+    if ie.kind == "timeout":
+        return HTTPException(504, "Hết thời gian chờ khi lấy ảnh đại diện. Hãy thử lại.")
+    if ie.kind == "login":
+        return HTTPException(422, "Nền tảng đang yêu cầu đăng nhập khi truy cập từ máy chủ này (thường do chặn IP máy chủ miễn phí, hoặc tài khoản riêng tư)." + LOCAL_HINT + _tail(ie))
+    if ie.kind == "blocked":
+        return HTTPException(502, "Nền tảng đang chặn máy chủ miễn phí này." + LOCAL_HINT + _tail(ie))
+    return HTTPException(422, "Không lấy được ảnh đại diện. Tài khoản có thể không tồn tại, ở chế độ riêng tư hoặc nền tảng đang chặn máy chủ." + _tail(ie))
+
 def image_error(ie: "images.ImageError", original: Exception) -> HTTPException:
     if ie.kind == "timeout":
         return HTTPException(504, "Hết thời gian chờ khi tìm ảnh. Hãy thử lại.")
     if ie.kind == "login":
-        return HTTPException(422, "Nội dung này cần đăng nhập hoặc không công khai nên không tải được. Chỉ hỗ trợ nội dung công khai.")
+        return HTTPException(422, "Nội dung này cần đăng nhập hoặc không công khai nên không tải được. Chỉ hỗ trợ nội dung công khai." + _tail(ie))
+    if ie.kind == "blocked":
+        return HTTPException(502, "Nền tảng đang chặn máy chủ miễn phí này." + LOCAL_HINT + _tail(ie))
     return vi_error(original)
 
 MAX_IMAGES = 30
@@ -140,7 +157,7 @@ class InfoReq(BaseModel):
 
 @app.get("/healthz")
 def healthz():
-    return {"ok": True, "ffmpeg": shutil.which("ffmpeg") is not None}
+    return {"ok": True, "ffmpeg": shutil.which("ffmpeg") is not None, "build": BUILD}
 
 @app.post("/api/info", dependencies=[Depends(rate_limit)])
 def info(req: InfoReq):
@@ -148,6 +165,15 @@ def info(req: InfoReq):
         url = validate_url(req.platform, req.url)
     except UnsafeUrl:
         raise HTTPException(400, "Liên kết không hợp lệ hoặc không thuộc nền tảng được hỗ trợ.")
+    av = profile_avatar_url(req.platform, url)
+    if av:  # a profile link: fetch the account's profile picture (full size) instead of looking for a video
+        try:
+            out = build_info({"title": "Ảnh đại diện · " + av.split("/")[3].lstrip("@") if av.count("/") >= 4 else "Ảnh đại diện"})
+            out["audio"], out["avatar"] = [], True
+            out.update(collect_images(av))
+            return out
+        except images.ImageError as ie:
+            raise avatar_error(ie)
     try:
         data = extract_info(url)
     except DownloadError as e:
@@ -170,7 +196,7 @@ def info(req: InfoReq):
     return out
 
 @app.get("/api/download", dependencies=[Depends(rate_limit)])
-def download(url: str, kind: Literal["video", "audio", "image"], id: str, bg: BackgroundTasks, sel: str | None = None):
+def download(url: str, kind: Literal["video", "audio", "image", "cover"], id: str, bg: BackgroundTasks, sel: str | None = None):
     try:
         url = validate_url(platform_of(url), url)
     except UnsafeUrl:
@@ -185,6 +211,10 @@ def download(url: str, kind: Literal["video", "audio", "image"], id: str, bg: Ba
         cap = f"[height<={config.MAX_HEIGHT}]" if config.MAX_HEIGHT else ""
         fmt = f"bv*{cap}+ba/b{cap}" if id == "best" else f"bv*[height<={id}]+ba/b[height<={id}]"
         opts = {"format": fmt, "merge_output_format": "mp4", "format_sort": ["res", "vcodec:h264", "acodec:aac"]}
+    elif kind == "cover":
+        if id != "thumb":
+            raise HTTPException(400, "Lựa chọn không hợp lệ.")
+        opts = {"skip_download": True, "writethumbnail": True, "postprocessors": [{"key": "FFmpegThumbnailsConvertor", "format": "jpg", "when": "before_dl"}]}
     else:
         if id not in AUDIO_IDS:
             raise HTTPException(400, "Định dạng âm thanh không hợp lệ.")

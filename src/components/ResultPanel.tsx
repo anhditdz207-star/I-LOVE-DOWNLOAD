@@ -10,7 +10,7 @@ const Tick = () => <svg viewBox="0 0 10 10" width="14" height="14" shapeRenderin
 
 export default function ResultPanel({ info, url }: { info: MediaInfo; url: string }) {
   const imgs = info.images ?? []
-  const tabs: Kind[] = imgs.length ? ['video', 'audio', 'image'] : ['video', 'audio']   // audio always; picture only when the post has photos
+  const tabs: Kind[] = info.avatar ? ['image'] : imgs.length ? ['video', 'audio', 'image'] : ['video', 'audio']   // audio always; picture only when the post has photos
   const [kind, setKind] = useState<Kind>(info.video.length ? 'video' : imgs.length ? 'image' : info.audio.length ? 'audio' : 'video')
   const [sel, setSel] = useState<string | null>(null)
   const [picked, setPicked] = useState<Set<string>>(() => new Set(imgs.map(i => i.id)))
@@ -31,7 +31,8 @@ export default function ResultPanel({ info, url }: { info: MediaInfo; url: strin
       <div className="preview frame">
         <div className="meta">
           {info.thumbnail && <img src={info.thumbnail} alt="" />}
-          <div><h2>{info.title}</h2><p>{[info.uploader, dur(info.duration)].filter(Boolean).join(' · ')}</p></div>
+          <div><h2>{info.title}</h2><p>{[info.uploader, dur(info.duration)].filter(Boolean).join(' · ')}</p>
+            {info.thumbnail && !info.avatar && !MOCK && <a className="mini cover" href={downloadUrl(url, 'cover', 'thumb')}>Tải ảnh bìa</a>}</div>
         </div>
         {MOCK && <p className="mockbar">Đang ở chế độ dữ liệu giả. Các lựa chọn bên dưới không phải định dạng thật.</p>}
 
