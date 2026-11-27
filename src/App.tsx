@@ -45,6 +45,7 @@ export default function App() {
               return (
                 <button
                   key={app.id}
+                  data-platform={app.id}
                   className={`app-square-btn ${active ? 'active' : ''}`}
                   onClick={() => go(active ? 'home' : app.id)}
                   title={app.label}
