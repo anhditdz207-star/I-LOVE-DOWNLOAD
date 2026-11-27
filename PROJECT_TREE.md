@@ -1,0 +1,19 @@
+# PROJECT_TREE
+- index.html — điểm vào, nạp font
+- public/logo.png — logo chính thức
+- src/App.tsx — state nền tảng (home/youtube/tiktok) và theme (day/night)
+- src/types.ts — kiểu dùng chung, API_BASE_URL từ VITE_API_BASE_URL
+- src/components/Header.tsx — logo, công tắc, badge nền tảng
+- src/components/PillSwitch.tsx — công tắc kéo/bấm/nhấp đúp
+- src/components/Landscape.tsx — phong cảnh pixel SVG
+- src/components/PlatformPage.tsx — trang YouTube/TikTok (khung nhập)
+- src/components/icons.tsx — icon nền tảng, mặt trời/mặt trăng
+- src/index.css — design tokens, theme ngày/đêm, animation
+- backend/ — FastAPI (Milestone 4)
+- backend/app/main.py — API, rate limit, tải qua yt-dlp, dọn file tạm
+- backend/app/security.py — kiểm tra URL (chống SSRF)
+- backend/app/formats.py — chuyển dữ liệu yt-dlp thành tùy chọn video/audio
+- backend/app/config.py — cấu hình từ biến môi trường
+- backend/tests/ — unit test
+- backend/Dockerfile, docker-compose.yml, render.yaml — triển khai
+- start.bat — chạy một chạm trên Windows; src/components/Footer.tsx — dòng bản quyền; dist/ — giao diện build sẵn cho chế độ local

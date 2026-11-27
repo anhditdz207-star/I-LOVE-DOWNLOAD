@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+__pycache__
+*.local
+
+# desktop app
+desktop/src-tauri/target/
+desktop/src-tauri/binaries/
+desktop/src-tauri/gen/
+desktop/build-out/
+desktop/build-work/
