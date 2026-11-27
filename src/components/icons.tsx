@@ -28,12 +28,16 @@ export const InstagramIcon = ({ size = 28 }: { size?: number }) => (
   </svg>
 )
 
-const BADGE = {
-  youtube: { Icon: YouTubeIcon, name: 'Yêutừbé' }, tiktok: { Icon: TikTokIcon, name: 'Tíctốc' },
-  facebook: { Icon: FacebookIcon, name: 'Phở Bò' }, instagram: { Icon: InstagramIcon, name: 'Insta' },
-} as const
+const BADGE: Record<string, { Icon: ({ size }: { size?: number }) => JSX.Element; name: string }> = {
+  youtube: { Icon: YouTubeIcon, name: 'Yêutừbé' },
+  tiktok: { Icon: TikTokIcon, name: 'Tíctốc' },
+  facebook: { Icon: FacebookIcon, name: 'Phở Bò' },
+  instagram: { Icon: InstagramIcon, name: 'Insta' },
+}
 
 export const PlatformBadge = ({ platform }: { platform: Exclude<Platform, 'home'> }) => {
-  const { Icon, name } = BADGE[platform]
+  const item = BADGE[platform]
+  if (!item) return null
+  const { Icon, name } = item
   return <div className="badge"><Icon size={44} /><span>{name}</span></div>
 }

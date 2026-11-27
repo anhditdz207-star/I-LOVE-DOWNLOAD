@@ -6,14 +6,15 @@ HOSTS = {
     "facebook": {"facebook.com", "www.facebook.com", "m.facebook.com", "web.facebook.com", "fb.watch"},
     "instagram": {"instagram.com", "www.instagram.com", "m.instagram.com"},
     "tiktok": {"tiktok.com", "www.tiktok.com", "m.tiktok.com", "vm.tiktok.com", "vt.tiktok.com"},
+    "google": {"google.com", "www.google.com", "drive.google.com", "docs.google.com", "photos.google.com"},
 }
 
 class UnsafeUrl(ValueError):
     pass
 
 def validate_url(platform: str, raw: str) -> str:
-    """https only, exact allow-listed hostname, no credentials/odd ports. Blocks IPs, localhost, file:// etc."""
-    if platform not in HOSTS or not raw or len(raw) > 2048:
+    """https only, exact allow-listed hostname or direct image link, no credentials/odd ports."""
+    if not raw or len(raw) > 2048:
         raise UnsafeUrl("invalid")
     try:
         u = urlparse(raw.strip())
@@ -22,9 +23,17 @@ def validate_url(platform: str, raw: str) -> str:
         raise UnsafeUrl("invalid")
     if u.scheme != "https" or u.username or u.password or port not in (None, 443):
         raise UnsafeUrl("invalid")
-    if (u.hostname or "").lower() not in HOSTS[platform]:
-        raise UnsafeUrl("invalid")
-    return u.geturl()
+    host = (u.hostname or "").lower()
+    if platform in HOSTS:
+        if host not in HOSTS[platform]:
+            raise UnsafeUrl("invalid")
+        return u.geturl()
+    if platform == "direct":
+        # Direct URL (e.g. image from web / Google Search images)
+        if host in ("localhost", "127.0.0.1") or host.startswith(("10.", "192.168.", "172.16.", "169.254.")):
+            raise UnsafeUrl("invalid")
+        return u.geturl()
+    raise UnsafeUrl("invalid")
 
 def platform_of(raw: str) -> str:
     for p in HOSTS:
@@ -33,6 +42,10 @@ def platform_of(raw: str) -> str:
             return p
         except UnsafeUrl:
             continue
+    try:
+        return validate_url("direct", raw) and "direct"
+    except UnsafeUrl:
+        pass
     raise UnsafeUrl("invalid")
 
 _RESERVED = {"p", "reel", "reels", "tv", "stories", "explore", "accounts", "watch", "photo", "photo.php", "groups", "share", "story.php",

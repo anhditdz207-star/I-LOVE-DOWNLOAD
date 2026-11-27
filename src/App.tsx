@@ -7,6 +7,7 @@ import Header from './components/Header'
 import Landscape from './components/Landscape'
 import PlatformPage from './components/PlatformPage'
 import Footer from './components/Footer'
+import { APPS } from './platforms'
 
 export type Prefill = { url: string; n: number; platform: Platform }
 
@@ -24,7 +25,6 @@ export default function App() {
 
   const go = (p: Platform) => { setPlatform(p); if (p === 'home') setPrefill(null) }
   const pick = (e: HEntry) => { setPlatform(e.platform); setPrefill(p => ({ url: e.url, n: (p?.n ?? 0) + 1, platform: e.platform })) }
-  const side = platform === 'facebook' || platform === 'instagram'
 
   return (
     <>
@@ -32,9 +32,32 @@ export default function App() {
       <div className="app">
         <Header platform={platform} theme={theme} onPlatform={go} onPick={pick}
           onTheme={() => setTheme(t => (t === 'day' ? 'night' : 'day'))} />
-        <main key={platform} className="stage" data-side={side}>
-          {platform !== 'home' && <PlatformPage platform={platform} prefill={prefill} />}
-        </main>
+
+        <div className="layout-body">
+          <main key={platform} className="stage-clean">
+            <PlatformPage platform={platform === 'home' ? 'direct' : platform} prefill={prefill} />
+          </main>
+
+          {/* Cột 4 ô icon nền tảng cố định bên phải theo bản vẽ */}
+          <aside className="sidebar-apps" aria-label="Chọn nền tảng">
+            {APPS.map(app => {
+              const active = platform === app.id
+              return (
+                <button
+                  key={app.id}
+                  className={`app-square-btn ${active ? 'active' : ''}`}
+                  onClick={() => go(active ? 'home' : app.id)}
+                  title={app.label}
+                  aria-pressed={active}
+                >
+                  <app.Icon size={32} />
+                  <span className="app-square-lbl">{app.label}</span>
+                </button>
+              )
+            })}
+          </aside>
+        </div>
+
         <Footer />
       </div>
     </>

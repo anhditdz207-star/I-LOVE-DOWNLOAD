@@ -171,7 +171,7 @@ def thumb(token: str, n: int):
 
 class InfoReq(BaseModel):
     url: str
-    platform: Literal["youtube", "tiktok", "facebook", "instagram"]
+    platform: Literal["youtube", "tiktok", "facebook", "instagram", "google", "direct"]
 
 @app.get("/healthz")
 def healthz():
@@ -183,6 +183,44 @@ def info(req: InfoReq):
         url = validate_url(req.platform, req.url)
     except UnsafeUrl:
         raise HTTPException(400, "Liên kết không hợp lệ hoặc không thuộc nền tảng được hỗ trợ.")
+    
+    # Handle direct image / Google image / photo link
+    if req.platform in ("google", "direct"):
+        try:
+            # Check if this is a direct web image URL (or photo link)
+            import io, urllib.request
+            req_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            r_req = urllib.request.Request(url, headers=req_headers)
+            with urllib.request.urlopen(r_req, timeout=10) as resp:
+                c_type = resp.headers.get("Content-Type", "")
+                data = resp.read(config.MAX_FILESIZE)
+            
+            from PIL import Image
+            img = Image.open(io.BytesIO(data))
+            token = os.urandom(8).hex()
+            job = os.path.join(config.TMP_DIR, "img-" + token)
+            os.makedirs(job, exist_ok=True)
+            orig_name = f"image.{img.format.lower() if img.format else 'jpg'}"
+            with open(os.path.join(job, orig_name), "wb") as f:
+                f.write(data)
+            
+            # Save standard formats for PowerPoint/Docs: PNG and JPG
+            if img.mode in ("RGBA", "P"):
+                img.save(os.path.join(job, "image.png"), "PNG")
+                img.convert("RGB").save(os.path.join(job, "image.jpg"), "JPEG")
+            else:
+                img.save(os.path.join(job, "image.png"), "PNG")
+                img.save(os.path.join(job, "image.jpg"), "JPEG")
+
+            out = build_info({"title": f"Ảnh từ liên kết ({img.width}x{img.height}px, gốc {img.format})"})
+            out["audio"], out["avatar"] = [], False
+            names = images.list_files(job)
+            out.update({"imageToken": token, "images": [{"id": str(i), "label": f"Ảnh ({n.rsplit('.', 1)[-1].upper()})", "ext": n.rsplit(".", 1)[-1].lower(), "thumb": f"/api/img/{token}/{i}"} for i, n in enumerate(names, 1)]})
+            return out
+        except Exception:
+            # If direct image read fails, try yt-dlp or gallery-dl
+            pass
+
     av = profile_avatar_url(req.platform, url)
     if av:  # a profile link: fetch the account's profile picture (full size) instead of looking for a video
         try:

@@ -185,3 +185,20 @@ html,body{height:100%;overflow:hidden}
 .dl-prog{display:flex;align-items:center;gap:12px;font-size:13px;font-weight:600}
 .dl-bar{flex:1;height:14px;border:3px solid var(--ink);background:var(--page);overflow:hidden}
 .dl-bar i{display:block;height:100%;background:var(--roof);transition:width .25s ease-out}
+
+/* GIAO DIEN MOI TINH GON THEO BAN VE */
+.hdr-clean{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
+.hdr-right{display:flex;align-items:center;gap:16px}
+.theme-circle-btn{width:50px;height:50px;border-radius:50%;border:3px solid var(--ink);background:var(--page);color:var(--ink);display:grid;place-items:center;cursor:pointer;box-shadow:3px 3px 0 var(--ink);transition:translate .15s,box-shadow .15s}
+.theme-circle-btn:hover{translate:1px 1px;box-shadow:2px 2px 0 var(--ink)}
+.theme-circle-btn:focus-visible{outline:3px dashed var(--roof);outline-offset:3px}
+
+.layout-body{flex:1;min-height:0;display:flex;gap:20px;position:relative;z-index:1}
+.stage-clean{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.stage-clean .dl{max-width:760px;margin:auto}
+
+.sidebar-apps{display:flex;flex-direction:column;gap:12px;align-self:center;z-index:2}
+.app-square-btn{width:64px;height:64px;border-radius:12px;border:3px solid var(--ink);background:var(--page);color:var(--ink);box-shadow:4px 4px 0 var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:translate .15s,box-shadow .15s,background .2s}
+.app-square-btn:hover{translate:2px 2px;box-shadow:2px 2px 0 var(--ink);background:color-mix(in srgb,var(--roof) 15%,var(--page))}
+.app-square-btn.active{background:var(--roof);color:#fff;translate:2px 2px;box-shadow:2px 2px 0 var(--ink)}
+.app-square-lbl{font-size:10px;font-weight:600;white-space:nowrap;line-height:1}

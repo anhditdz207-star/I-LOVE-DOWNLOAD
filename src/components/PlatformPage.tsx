@@ -10,7 +10,7 @@ type State = { s: 'idle' } | { s: 'loading' } | { s: 'error'; msg: string; block
 type P = { platform: Exclude<Platform, 'home'>; prefill: Prefill | null }
 
 export default function PlatformPage({ platform, prefill }: P) {
-  const name = { youtube: 'YouTube', tiktok: 'TikTok', facebook: 'Facebook', instagram: 'Instagram' }[platform]
+  const name = { youtube: 'YouTube', tiktok: 'TikTok', facebook: 'Facebook', instagram: 'Instagram', google: 'Google / Web', direct: 'Web / Ảnh' }[platform] || 'Web'
   const mine = prefill && prefill.platform === platform ? prefill : null
   const [url, setUrl] = useState(mine?.url ?? '')
   const [st, setSt] = useState<State>({ s: 'idle' })
@@ -44,9 +44,19 @@ export default function PlatformPage({ platform, prefill }: P) {
   return (
     <section className="dl">
       <form className="searchbar" onSubmit={submit}>
-        <input type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder={`Dán liên kết ${name} (video, ảnh hoặc trang cá nhân)`} aria-label={`Liên kết ${name}`} />
+        <input
+          type="url"
+          value={url}
+          onChange={e => setUrl(e.target.value)}
+          placeholder={
+            platform === 'direct' || platform === 'google'
+              ? 'Dán liên kết bất kỳ (Google, ảnh web, tài liệu hoặc link video...)'
+              : `Dán liên kết ${name} (video, ảnh hoặc trang cá nhân)`
+          }
+          aria-label={`Liên kết ${name}`}
+        />
         <button type="submit" disabled={st.s === 'loading'} aria-label="Lấy thông tin để tải">
-          <svg viewBox="0 -1 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round"><path d="M9 3h6v8h4l-7 8-7-8h4z" /></svg>
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round"><path d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" /></svg>
         </button>
       </form>
       {st.s === 'loading' && <div className="preview frame compact"><div className="loader" role="status"><i /><i /><i /><span>{slow ? 'Máy chủ miễn phí đang thức dậy, có thể mất tới 1 phút…' : 'Đang lấy thông tin…'}</span></div></div>}

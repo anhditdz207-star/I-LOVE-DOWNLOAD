@@ -10,12 +10,13 @@ export class ApiError extends Error {
 }
 
 export const MOCK = import.meta.env.VITE_USE_MOCK === 'true'
-const NAME = { youtube: 'YouTube', tiktok: 'TikTok', facebook: 'Facebook', instagram: 'Instagram' } as const
-const HOSTS: Record<Exclude<Platform, 'home'>, string[]> = {
+const NAME: Record<string, string> = { youtube: 'YouTube', tiktok: 'TikTok', facebook: 'Facebook', instagram: 'Instagram', google: 'Google / Web', direct: 'Trực tiếp' }
+const HOSTS: Record<string, string[]> = {
   facebook: ['facebook.com', 'www.facebook.com', 'm.facebook.com', 'web.facebook.com', 'fb.watch'],
   instagram: ['instagram.com', 'www.instagram.com', 'm.instagram.com'],
   youtube: ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'],
   tiktok: ['tiktok.com', 'www.tiktok.com', 'm.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com'],
+  google: ['google.com', 'www.google.com', 'drive.google.com', 'docs.google.com', 'photos.google.com'],
 }
 
 /** Normalize http:// -> https:// so user pastes from older links still pass backend strict https check. */
@@ -28,7 +29,9 @@ export function normalizeUrl(raw: string): string {
 export function checkUrl(p: Exclude<Platform, 'home'>, raw: string): string | null {
   let u: URL
   try { u = new URL(normalizeUrl(raw)) } catch { return 'Liên kết không hợp lệ. Hãy dán đầy đủ địa chỉ bắt đầu bằng https://' }
-  if (u.protocol !== 'https:' || !HOSTS[p].includes(u.hostname.toLowerCase())) return `Đây không phải liên kết ${NAME[p]}. Hãy kiểm tra lại.`
+  if (u.protocol !== 'https:') return 'Vui lòng dán liên kết bảo mật https://'
+  if (p === 'direct' || p === 'google') return null
+  if (HOSTS[p] && !HOSTS[p].includes(u.hostname.toLowerCase())) return `Đây không phải liên kết ${NAME[p]}. Hãy kiểm tra lại.`
   return null
 }
 
